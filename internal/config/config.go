@@ -134,7 +134,7 @@ func Load() (*Config, error) {
 		},
 		{
 			Name:            "berachain",
-			ChainID:         80084,
+			ChainID:         80094,
 			RPCURL:          os.Getenv("BERA_NODE_URL"),
 			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
 		},

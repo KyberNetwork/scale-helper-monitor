@@ -42,49 +42,22 @@ jobs:
         TENDERLY_USERNAME: ${{ secrets.TENDERLY_USERNAME }}
         TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
         
-        # Ethereum Mainnet
+        # Node URLs
         ETH_NODE_URL: ${{ secrets.ETH_NODE_URL }}
-        ETH_CONTRACT_ADDRESS: ${{ secrets.ETH_CONTRACT_ADDRESS }}
-        
-        # Polygon
         POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
-        POLYGON_CONTRACT_ADDRESS: ${{ secrets.POLYGON_CONTRACT_ADDRESS }}
-        
-        # BSC
         BSC_NODE_URL: ${{ secrets.BSC_NODE_URL }}
-        BSC_CONTRACT_ADDRESS: ${{ secrets.BSC_CONTRACT_ADDRESS }}
-        
-        # Arbitrum
         ARBITRUM_NODE_URL: ${{ secrets.ARBITRUM_NODE_URL }}
-        ARBITRUM_CONTRACT_ADDRESS: ${{ secrets.ARBITRUM_CONTRACT_ADDRESS }}
-        
-        # Avalanche
-        AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
-        AVALANCHE_CONTRACT_ADDRESS: ${{ secrets.AVALANCHE_CONTRACT_ADDRESS }}
-        
-        # Base
+        AVAX_NODE_URL: ${{ secrets.AVAX_NODE_URL }}
         BASE_NODE_URL: ${{ secrets.BASE_NODE_URL }}
-        BASE_CONTRACT_ADDRESS: ${{ secrets.BASE_CONTRACT_ADDRESS }}
-        
-        # Berachain
-        BERACHAIN_NODE_URL: ${{ secrets.BERACHAIN_NODE_URL }}
-        BERACHAIN_CONTRACT_ADDRESS: ${{ secrets.BERACHAIN_CONTRACT_ADDRESS }}
-        
-        # Mantle
+        BERA_NODE_URL: ${{ secrets.BERA_NODE_URL }}
         MANTLE_NODE_URL: ${{ secrets.MANTLE_NODE_URL }}
-        MANTLE_CONTRACT_ADDRESS: ${{ secrets.MANTLE_CONTRACT_ADDRESS }}
-        
-        # Optimism
         OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
-        OPTIMISM_CONTRACT_ADDRESS: ${{ secrets.OPTIMISM_CONTRACT_ADDRESS }}
-        
-        # Sonic
         SONIC_NODE_URL: ${{ secrets.SONIC_NODE_URL }}
-        SONIC_CONTRACT_ADDRESS: ${{ secrets.SONIC_CONTRACT_ADDRESS }}
-        
-        # Unichain
         UNICHAIN_NODE_URL: ${{ secrets.UNICHAIN_NODE_URL }}
-        UNICHAIN_CONTRACT_ADDRESS: ${{ secrets.UNICHAIN_CONTRACT_ADDRESS }}
+
+        # Contract Addresses
+        CONTRACT_ADDRESS: ${{ secrets.CONTRACT_ADDRESS }}
+        
       run: |
         echo "Starting scale helper monitoring (one-shot mode)..."
         ./scale-helper-monitor
