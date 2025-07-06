@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -22,30 +23,29 @@ import (
 
 // Monitor represents the main monitoring service
 type Monitor struct {
-	config        *Config
-	balanceSlot   map[string]map[string]map[string]string
-	chains        []ChainConfig
-	testTokens    []TestToken
-	kyberClient   *kyberswap.Client
-	slackClient   *slack.Client
+	config         *Config
+	testCases      []TestCase
+	tokens         map[string]map[string]TokenInfo // chain name -> token address -> token info
+	chains         []ChainConfig
+	kyberClient    *kyberswap.Client
+	slackClient    *slack.Client
 	tenderlyClient *tenderly.Client
-	ethClients    map[string]*ethclient.Client
-	contractABI   abi.ABI
-	logger        *logrus.Logger
+	ethClients     map[string]*ethclient.Client
+	contractABI    abi.ABI
+	logger         *logrus.Logger
 }
 
 // NewMonitor creates a new monitoring service
 func NewMonitor(
 	config *Config,
-	balanceSlot map[string]map[string]map[string]string,
+	testCases []TestCase,
+	tokens map[string]map[string]TokenInfo,
 	chains []ChainConfig,
-	testTokens []TestToken,
 	kyberClient *kyberswap.Client,
 	slackClient *slack.Client,
 	tenderlyClient *tenderly.Client,
 	logger *logrus.Logger,
 ) (*Monitor, error) {
-
 
 	// Create Ethereum clients for each chain
 	ethClients := make(map[string]*ethclient.Client)
@@ -65,7 +65,6 @@ func NewMonitor(
 		}
 
 		ethClients[chain.Name] = client
-		logger.WithField("chain", chain.Name).Info("Successfully connected to RPC endpoint")
 	}
 
 	// Create contract ABI
@@ -77,20 +76,19 @@ func NewMonitor(
 	return &Monitor{
 		config:         config,
 		chains:         chains,
-		testTokens:     testTokens,
 		kyberClient:    kyberClient,
 		slackClient:    slackClient,
 		tenderlyClient: tenderlyClient,
 		ethClients:     ethClients,
 		contractABI:    contractABI,
 		logger:         logger,
-		balanceSlot:    balanceSlot,
+		tokens:         tokens,
+		testCases:      testCases,
 	}, nil
 }
 
 // createContractABI creates the ABI for the getScaledInputData function
 func createContractABI() (abi.ABI, error) {
-	// ABI for getScaledInputData function
 	abiJSON := `[{
 		"inputs": [
 			{
@@ -125,18 +123,30 @@ func createContractABI() (abi.ABI, error) {
 }
 
 // MonitorChain monitors a specific chain with a test token pair
-func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Result, error) {
+func (m *Monitor) MonitorChain(ctx context.Context, testCase TestCase) (*Result, error) {
+	// Convert amount and decimals to big.Int for calculation
+	amount, ok := new(big.Int).SetString(testCase.Amount, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid amount format: %s", testCase.Amount)
+	}
+
+	decimals, ok := new(big.Int).SetString(m.tokens[testCase.ChainName][testCase.TokenIn].Decimals, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid decimals format: %s", m.tokens[testCase.ChainName][testCase.TokenIn].Decimals)
+	}
+
+	testCase.Amount = new(big.Int).Mul(amount, new(big.Int).Exp(big.NewInt(10), decimals, nil)).String()
 	// Find the chain config
 	var chainConfig *ChainConfig
 	for _, chain := range m.chains {
-		if chain.Name == testToken.ChainName {
+		if chain.Name == testCase.ChainName {
 			chainConfig = &chain
 			break
 		}
 	}
 
 	if chainConfig == nil {
-		return nil, fmt.Errorf("chain %s not found in configuration", testToken.ChainName)
+		return nil, fmt.Errorf("chain %s not found in configuration", testCase.ChainName)
 	}
 
 	// Get Ethereum client
@@ -148,51 +158,48 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 	// Fetch route from KyberSwap
 	routeEncodedData, route, err := m.kyberClient.GetRoute(
 		chainConfig.Name,
-		testToken.TokenIn,
-		testToken.TokenOut,
-		testToken.Amount,
-		chainConfig.ChainID,
+		testCase.TokenIn,
+		testCase.TokenOut,
+		testCase.Amount,
 	)
 
 	if err != nil {
 		return &Result{
-			ChainName:      chainConfig.Name,
-			ChainID:        chainConfig.ChainID,
-			TokenIn:        testToken.TokenIn,
-			TokenOut:       testToken.TokenOut,
-			Amount:         testToken.Amount,
-			Error:          fmt.Sprintf("Failed to fetch route: %v", err),
+			ChainName: testCase.ChainName,
+			TokenIn:   m.tokens[testCase.ChainName][testCase.TokenIn].Symbol,
+			TokenOut:  m.tokens[testCase.ChainName][testCase.TokenOut].Symbol,
+			Amount:    testCase.Amount,
+			Error:     fmt.Sprintf("Failed to fetch route: %v", err),
 		}, err
 	}
 
 	// Step 1: Simulate original swap with Tenderly
 	fromAddress := "0xdeAD00000000000000000000000000000000dEAd"
-	
-	// Create state objects for fake balances and 
+
+	// Create state objects for fake balances and
 	stateObjects, err := m.tenderlyClient.CreateStateObjectsForSwap(
-		testToken.TokenIn,
+		testCase.TokenIn,
 		routeEncodedData.RouterAddress,
 		fromAddress,
 		routeEncodedData.AmountIn,
 		chainConfig.Name,
-		&m.balanceSlot,
+		m.tokens[chainConfig.Name][testCase.TokenIn].Slot,
 	)
 	if err != nil {
 		return &Result{
-			ChainName:      chainConfig.Name,
-			ChainID:        chainConfig.ChainID,
-			TokenIn:        testToken.TokenIn,
-			TokenOut:       testToken.TokenOut,
-			Amount:         testToken.Amount,
-			Error:          fmt.Sprintf("Failed to create state objects: %v", err),
+			ChainName: chainConfig.Name,
+			TokenIn:   m.tokens[testCase.ChainName][testCase.TokenIn].Symbol,
+			TokenOut:  m.tokens[testCase.ChainName][testCase.TokenOut].Symbol,
+			Amount:    testCase.Amount,
+			Error:     fmt.Sprintf("Failed to create state objects: %v", err),
 		}, err
 	}
-	
+
 	// Simulate original swap
 	originalSuccess, originalError, originalTenderlyURL, err := m.tenderlyClient.SimulateTransaction(
 		ctx,
 		tenderly.GetChainNetworkID(chainConfig.ChainID),
-		testToken.TokenIn,
+		testCase.TokenIn,
 		fromAddress,
 		routeEncodedData.RouterAddress,
 		routeEncodedData.Data,
@@ -201,12 +208,11 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 	)
 	if err != nil {
 		return &Result{
-			ChainName:      chainConfig.Name,
-			ChainID:        chainConfig.ChainID,
-			TokenIn:        testToken.TokenIn,
-			TokenOut:       testToken.TokenOut,
-			Amount:         testToken.Amount,
-			Error:          fmt.Sprintf("Original Tenderly simulation failed: %v", err),
+			ChainName: chainConfig.Name,
+			TokenIn:   m.tokens[testCase.ChainName][testCase.TokenIn].Symbol,
+			TokenOut:  m.tokens[testCase.ChainName][testCase.TokenOut].Symbol,
+			Amount:    testCase.Amount,
+			Error:     fmt.Sprintf("Original Tenderly simulation failed: %v", err),
 		}, err
 	}
 
@@ -216,13 +222,12 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 		if originalError != "" {
 			errorMsg = fmt.Sprintf("Original swap failed: %s", originalError, "Tenderly URL: ", originalTenderlyURL)
 		}
-		
+
 		return &Result{
 			ChainName:           chainConfig.Name,
-			ChainID:             chainConfig.ChainID,
-			TokenIn:             testToken.TokenIn,
-			TokenOut:            testToken.TokenOut,
-			Amount:              testToken.Amount,
+			TokenIn:             testCase.TokenIn,
+			TokenOut:            testCase.TokenOut,
+			Amount:              testCase.Amount,
 			Error:               errorMsg,
 			OriginalTenderlyURL: originalTenderlyURL,
 		}, fmt.Errorf(errorMsg)
@@ -233,41 +238,45 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 	if err != nil {
 		return &Result{
 			ChainName:           chainConfig.Name,
-			ChainID:             chainConfig.ChainID,
-			TokenIn:             testToken.TokenIn,
-			TokenOut:            testToken.TokenOut,
-			Amount:              testToken.Amount,
+			TokenIn:             testCase.TokenIn,
+			TokenOut:            testCase.TokenOut,
+			Amount:              testCase.Amount,
 			Error:               fmt.Sprintf("Failed to decode input data: %v", err),
 			OriginalTenderlyURL: originalTenderlyURL,
 		}, err
 	}
 
-	// Convert amount to big.Int and create new amount (10% different)
 	originalAmount, ok := new(big.Int).SetString(routeEncodedData.AmountIn, 10)
+
 	if !ok {
 		return &Result{
 			ChainName:           chainConfig.Name,
-			ChainID:             chainConfig.ChainID,
-			TokenIn:             testToken.TokenIn,
-			TokenOut:            testToken.TokenOut,
-			Amount:              testToken.Amount,
+			TokenIn:             testCase.TokenIn,
+			TokenOut:            testCase.TokenOut,
+			Amount:              testCase.Amount,
 			Error:               "Failed to parse input amount",
 			OriginalTenderlyURL: originalTenderlyURL,
 		}, fmt.Errorf("failed to parse input amount")
 	}
-
-	newAmount := new(big.Int).Mul(originalAmount, big.NewInt(110))
-	newAmount = newAmount.Div(newAmount, big.NewInt(100))
+	newAmount := originalAmount
+	scaleDown := rand.Intn(1000000)%2 == 0
+	percentage := rand.Intn(50)
+	if scaleDown {
+		newAmount = new(big.Int).Mul(originalAmount, big.NewInt(int64(100-percentage)))
+		newAmount = new(big.Int).Div(newAmount, big.NewInt(100))
+	} else {
+		newAmount = new(big.Int).Mul(originalAmount, big.NewInt(int64(100+percentage)))
+		newAmount = new(big.Int).Div(newAmount, big.NewInt(100))
+	}
 
 	// Call the scale helper contract
 	scaleResult, err := m.callGetScaledInputData(ctx, ethClient, chainConfig.ContractAddress, inputData, newAmount)
 	if err != nil {
 		return &Result{
 			ChainName:           chainConfig.Name,
-			ChainID:             chainConfig.ChainID,
-			TokenIn:             testToken.TokenIn,
-			TokenOut:            testToken.TokenOut,
-			Amount:              testToken.Amount,
+			TokenIn:             m.tokens[testCase.ChainName][testCase.TokenIn].Symbol,
+			TokenOut:            m.tokens[testCase.ChainName][testCase.TokenOut].Symbol,
+			Amount:              testCase.Amount,
 			InputData:           routeEncodedData.Data,
 			NewAmount:           newAmount.String(),
 			Error:               fmt.Sprintf("Scale helper call failed: %v", err),
@@ -278,15 +287,14 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 
 	if !scaleResult.IsSuccess {
 		scaleErr := &CallGetScaledInputDataError{
-			ChainID: chainConfig.ChainID,
-			Message: "Scale helper returned false",
+			ChainName: chainConfig.Name,
+			Message:   "Scale helper returned false",
 		}
 		return &Result{
 			ChainName:           chainConfig.Name,
-			ChainID:             chainConfig.ChainID,
-			TokenIn:             testToken.TokenIn,
-			TokenOut:            testToken.TokenOut,
-			Amount:              testToken.Amount,
+			TokenIn:             testCase.TokenIn,
+			TokenOut:            testCase.TokenOut,
+			Amount:              testCase.Amount,
 			IsSuccess:           scaleResult.IsSuccess,
 			ReturnedData:        hexutil.Encode(scaleResult.Data),
 			InputData:           routeEncodedData.Data,
@@ -299,32 +307,31 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 
 	// Step 3: Simulate scaled swap with Tenderly
 	scaledData := hexutil.Encode(scaleResult.Data)
-	
+
 	// Create state objects for scaled amount
 	scaledStateObjects, err := m.tenderlyClient.CreateStateObjectsForSwap(
-		testToken.TokenIn,
+		testCase.TokenIn,
 		routeEncodedData.RouterAddress,
 		fromAddress,
 		newAmount.String(),
 		chainConfig.Name,
-		&m.balanceSlot,
+		m.tokens[chainConfig.Name][testCase.TokenIn].Slot,
 	)
-	if err != nil {	
+	if err != nil {
 		return &Result{
-			ChainName:      chainConfig.Name,
-			ChainID:        chainConfig.ChainID,
-			TokenIn:        testToken.TokenIn,
-			TokenOut:       testToken.TokenOut,
-			Amount:         testToken.Amount,
-			Error:          fmt.Sprintf("Failed to create scaled state objects: %v", err),
+			ChainName: chainConfig.Name,
+			TokenIn:   m.tokens[testCase.ChainName][testCase.TokenIn].Symbol,
+			TokenOut:  m.tokens[testCase.ChainName][testCase.TokenOut].Symbol,
+			Amount:    testCase.Amount,
+			Error:     fmt.Sprintf("Failed to create scaled state objects: %v", err),
 		}, err
 	}
-	
+
 	// Simulate scaled swap
 	scaledSuccess, scaledError, scaledTenderlyURL, err := m.tenderlyClient.SimulateTransaction(
 		ctx,
 		tenderly.GetChainNetworkID(chainConfig.ChainID),
-		testToken.TokenIn,
+		testCase.TokenIn,
 		fromAddress,
 		routeEncodedData.RouterAddress,
 		scaledData,
@@ -334,10 +341,9 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 	if err != nil {
 		return &Result{
 			ChainName:           chainConfig.Name,
-			ChainID:             chainConfig.ChainID,
-			TokenIn:             testToken.TokenIn,
-			TokenOut:            testToken.TokenOut,
-			Amount:              testToken.Amount,
+			TokenIn:             testCase.TokenIn,
+			TokenOut:            testCase.TokenOut,
+			Amount:              testCase.Amount,
 			IsSuccess:           scaleResult.IsSuccess,
 			ReturnedData:        scaledData,
 			InputData:           routeEncodedData.Data,
@@ -356,16 +362,15 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 		}
 
 		scaleErr := &CallGetScaledInputDataError{
-			ChainID: chainConfig.ChainID,
-			Message: errorMsg,
+			ChainName: chainConfig.Name,
+			Message:   errorMsg,
 		}
 
 		return &Result{
 			ChainName:           chainConfig.Name,
-			ChainID:             chainConfig.ChainID,
-			TokenIn:             testToken.TokenIn,
-			TokenOut:            testToken.TokenOut,
-			Amount:              testToken.Amount,
+			TokenIn:             testCase.TokenIn,
+			TokenOut:            testCase.TokenOut,
+			Amount:              testCase.Amount,
 			IsSuccess:           false, // Scaled simulation failed
 			ReturnedData:        scaledData,
 			InputData:           routeEncodedData.Data,
@@ -377,19 +382,11 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 		}, scaleErr
 	}
 
-	// Success case - both original and scaled simulations passed
-	m.logger.WithFields(logrus.Fields{
-		"chain":       chainConfig.Name,
-		"originalURL": originalTenderlyURL,
-		"scaledURL":   scaledTenderlyURL,
-	}).Info("Both original and scaled swap simulations succeeded")
-
 	return &Result{
 		ChainName:           chainConfig.Name,
-		ChainID:             chainConfig.ChainID,
-		TokenIn:             testToken.TokenIn,
-		TokenOut:            testToken.TokenOut,
-		Amount:              testToken.Amount,
+		TokenIn:             testCase.TokenIn,
+		TokenOut:            testCase.TokenOut,
+		Amount:              testCase.Amount,
 		IsSuccess:           true,
 		ReturnedData:        scaledData,
 		InputData:           routeEncodedData.Data,
@@ -403,11 +400,11 @@ func (m *Monitor) MonitorChain(ctx context.Context, testToken TestToken) (*Resul
 // callGetScaledInputData calls the getScaledInputData function on the contract
 func (m *Monitor) callGetScaledInputData(ctx context.Context, client *ethclient.Client, contractAddress string, inputData []byte, newAmount *big.Int) (*ContractCallResult, error) {
 	// Find the chain ID from the contract address
-	var chainID int
+	var chainName string
 	var chainFound bool
 	for _, chain := range m.chains {
 		if chain.ContractAddress == contractAddress {
-			chainID = chain.ChainID
+			chainName = chain.Name
 			chainFound = true
 			break
 		}
@@ -443,14 +440,14 @@ func (m *Monitor) callGetScaledInputData(ctx context.Context, client *ethclient.
 	if err != nil {
 		// Check if this is a contract revert vs RPC failure
 		errMsg := err.Error()
-		if strings.Contains(errMsg, "execution reverted") || 
-		   strings.Contains(errMsg, "revert") ||
-		   strings.Contains(errMsg, "invalid opcode") ||
-		   strings.Contains(errMsg, "out of gas") {
+		if strings.Contains(errMsg, "execution reverted") ||
+			strings.Contains(errMsg, "revert") ||
+			strings.Contains(errMsg, "invalid opcode") ||
+			strings.Contains(errMsg, "out of gas") {
 			// This is a contract revert, create CallGetScaledInputDataError
 			scaleErr := &CallGetScaledInputDataError{
-				ChainID: chainID,
-				Message: errMsg,
+				ChainName: chainName,
+				Message:   errMsg,
 			}
 			return nil, scaleErr
 		}
@@ -485,6 +482,41 @@ func (m *Monitor) callGetScaledInputData(ctx context.Context, client *ethclient.
 	}, nil
 }
 
+// RunMonitoringOnce runs monitoring for all test cases once and exits
+func (m *Monitor) RunMonitoringOnce(ctx context.Context) error {
+	m.logger.Info("Running one-shot monitoring check")
+
+	// Monitor each test case
+	for _, testCase := range m.testCases {
+		result, err := m.MonitorChain(ctx, testCase)
+		if err != nil {
+			// Only send alert for CallGetScaledInputDataError (scale helper or simulation failures)
+			var scaleHelperErr *CallGetScaledInputDataError
+			if errors.As(err, &scaleHelperErr) && result != nil {
+				if alertErr := m.slackClient.SendAlert(result); alertErr != nil {
+					m.logger.WithError(alertErr).Error("Failed to send Slack alert")
+				}
+
+				m.logger.WithError(err).Error("Monitoring check failed")
+			} else {
+				// For other errors (API failures, network issues), just log
+				m.logger.WithError(err).Warn("Monitoring check encountered error")
+			}
+			continue
+		}
+
+		// Log the result
+		m.logger.WithFields(logrus.Fields{
+			"chain":    result.ChainName,
+			"tokenIn":  m.tokens[result.ChainName][result.TokenIn].Symbol,
+			"tokenOut": m.tokens[result.ChainName][result.TokenOut].Symbol,
+		}).Info("Monitoring check completed")
+	}
+
+	m.logger.Info("One-shot monitoring completed")
+	return nil
+}
+
 // RunMonitoring runs the monitoring loop
 func (m *Monitor) RunMonitoring(ctx context.Context) error {
 	// Parse interval
@@ -505,11 +537,10 @@ func (m *Monitor) RunMonitoring(ctx context.Context) error {
 			return ctx.Err()
 
 		case <-ticker.C:
-			m.logger.Debug("Running monitoring check")
 
-			// Monitor each test token
-			for _, testToken := range m.testTokens {
-				result, err := m.MonitorChain(ctx, testToken)
+			// Monitor each test case
+			for _, testCase := range m.testCases {
+				result, err := m.MonitorChain(ctx, testCase)
 				if err != nil {
 					// Only send alert for CallGetScaledInputDataError (scale helper or simulation failures)
 					var scaleHelperErr *CallGetScaledInputDataError
@@ -528,16 +559,10 @@ func (m *Monitor) RunMonitoring(ctx context.Context) error {
 
 				// Log the result
 				m.logger.WithFields(logrus.Fields{
-					"chain":         result.ChainName,
-					"tokenIn":       result.TokenIn,
-					"tokenOut":      result.TokenOut,
-					"isSuccess":     result.IsSuccess,
-					"originalURL":   result.OriginalTenderlyURL,
-					"scaledURL":     result.ScaledTenderlyURL,
+					"chain":    result.ChainName,
+					"tokenIn":  m.tokens[result.ChainName][result.TokenIn].Symbol,
+					"tokenOut": m.tokens[result.ChainName][result.TokenOut].Symbol,
 				}).Info("Monitoring check completed")
-
-				// For the Tenderly workflow, alerts are already sent if the scaled simulation fails
-				// No additional alert needed here since failures are handled above
 			}
 		}
 	}
@@ -551,4 +576,4 @@ func (m *Monitor) Close() {
 			m.logger.WithField("chain", chainName).Info("Closed RPC connection")
 		}
 	}
-} 
+}

@@ -30,38 +30,32 @@ func NewClient(accessKey, username, project string) *Client {
 }
 
 // CreateStateObjectsForSwap creates state objects for token balances and approvals
-func (c *Client) CreateStateObjectsForSwap(tokenIn, routerAddress, fromAddress, amount string, chainName string, balanceSlot *map[string]map[string]map[string]string) (map[string]interface{}, error) {
+func (c *Client) CreateStateObjectsForSwap(tokenIn, routerAddress, fromAddress, amount string, chainName string, balanceSlot string) (map[string]interface{}, error) {
 	stateObjects := make(map[string]interface{})
-	
+
 	stateObjects[fromAddress] = map[string]interface{}{
 		"balance": "0xffffffffffffffffffffffffffff",
 	}
-	
+
 	// Skip token state manipulation for native token
 	if strings.EqualFold(tokenIn, NATIVE_ADDRESS) {
 		return stateObjects, nil
 	}
 
-	storageSlot := (*balanceSlot)[fromAddress][chainName][tokenIn]
-
-	if storageSlot == "" {
-		return nil, fmt.Errorf("balance slot not found for token %s on chain %s", tokenIn, chainName)
-	}
-	
 	// Set token balance following sim.py pattern
 	stateObjects[tokenIn] = map[string]interface{}{
 		"storage": map[string]string{
-			storageSlot: "0x7fffffffffffffff0123456789abcdef", 
+			balanceSlot: "0x7fffffffffffffff0123456789abcdef",
 		},
 	}
-	
+
 	return stateObjects, nil
 }
 
 // SimulateTransactionBundle simulates a transaction using Tenderly's simulate-bundle endpoint
 func (c *Client) SimulateTransactionBundle(ctx context.Context, bundleReq *SimulationBundleRequest) (*SimulationBundleResponse, error) {
 	url := fmt.Sprintf("%s/account/%s/project/%s/simulate-bundle", c.baseURL, c.username, c.project)
-	
+
 	jsonData, err := json.Marshal(bundleReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal simulation bundle request: %w", err)
@@ -94,43 +88,43 @@ func (c *Client) SimulateTransactionBundle(ctx context.Context, bundleReq *Simul
 }
 
 // SimulateTransaction provides a simpler interface that matches our existing code
-func (c *Client) SimulateTransaction(ctx context.Context, networkID, tokenIn ,from, to, input, value string, stateObjects map[string]interface{}) (bool, string, string, error) {
+func (c *Client) SimulateTransaction(ctx context.Context, networkID, tokenIn, from, to, input, value string, stateObjects map[string]interface{}) (bool, string, string, error) {
 	approvalReq := c.CreateApprovalData(networkID, from, to, tokenIn)
 	swapReq := &SimulationRequest{
-		NetworkID:    networkID,
-		From:         from,
-		To:           to,
-		GasLimit:          9999999999999, 
-		Value:        value,
-		Input:        input,
-		Save:         true,
-		SaveIfFails:  true,
+		NetworkID:      networkID,
+		From:           from,
+		To:             to,
+		GasLimit:       9999999999999,
+		Value:          value,
+		Input:          input,
+		Save:           true,
+		SaveIfFails:    true,
 		SimulationType: "quick",
-		StateObjects: stateObjects,
+		StateObjects:   stateObjects,
 	}
-	
+
 	bundleResp, err := c.SimulateTransactionBundle(ctx, &SimulationBundleRequest{
 		Simulations: []SimulationRequest{*approvalReq, *swapReq},
 	})
 	if err != nil {
 		return false, "", "", err
 	}
-	
+
 	if len(bundleResp.SimulationResults) == 0 {
 		return false, "", "", fmt.Errorf("no simulation results returned")
 	}
-	
+
 	result := bundleResp.SimulationResults[1]
-	
+
 	// Generate Tenderly URL
-	tenderlyURL := fmt.Sprintf("https://dashboard.tenderly.co/%s/%s/simulator/%s", 
+	tenderlyURL := fmt.Sprintf("https://dashboard.tenderly.co/%s/%s/simulator/%s",
 		c.username, c.project, result.Simulation.ID)
-	
+
 	// Check if transaction was successful
 	if result.Transaction != nil {
 		return result.Transaction.Status, result.Simulation.ErrorMessage, tenderlyURL, nil
 	}
-	
+
 	// If transaction is nil, it failed
 	return false, result.Simulation.ErrorMessage, tenderlyURL, nil
 }
@@ -148,7 +142,7 @@ func GetChainNetworkID(chainID int) string {
 		8453:  "8453",  // Base
 		// Add more as needed
 	}
-	
+
 	if networkID, exists := networkMap[chainID]; exists {
 		return networkID
 	}
@@ -158,24 +152,24 @@ func GetChainNetworkID(chainID int) string {
 // CreateApprovalData creates approval transaction data for token approvals
 func (c *Client) CreateApprovalData(networkID, sender, routerAddress, tokenToApprove string) *SimulationRequest {
 	amount := "ffffffffffffffffffffffffffffffff"
-	
+
 	// Remove 0x prefix from router address
 	routerWithoutPrefix := strings.TrimPrefix(routerAddress, "0x")
-	
+
 	// ERC20 approve function: approve(address spender, uint256 amount)
 	// Function selector: 0x095ea7b3
-	input := fmt.Sprintf("0x095ea7b3000000000000000000000000%s00000000000000000000000000000000%s", 
+	input := fmt.Sprintf("0x095ea7b3000000000000000000000000%s00000000000000000000000000000000%s",
 		routerWithoutPrefix, amount)
-	
+
 	return &SimulationRequest{
-		Save:            true,
-		SaveIfFails:   true,
+		Save:           true,
+		SaveIfFails:    true,
 		SimulationType: "quick",
 		NetworkID:      networkID,
-		From:            sender,
-		GasLimit:          9999999999999,
-		Value:           "0x0",
-		To:              tokenToApprove,
-		Input:           input,
+		From:           sender,
+		GasLimit:       9999999999999,
+		Value:          "0x0",
+		To:             tokenToApprove,
+		Input:          input,
 	}
 }

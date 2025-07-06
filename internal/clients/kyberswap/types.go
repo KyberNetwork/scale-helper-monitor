@@ -2,21 +2,21 @@ package kyberswap
 
 // KyberSwapRoute represents a route response from KyberSwap API
 type KyberSwapRoute struct {
-	TokenIn       string           `json:"tokenIn"`
-	AmountIn      string           `json:"amountIn"`
-	AmountInUsd   string           `json:"amountInUsd"`
-	TokenOut      string           `json:"tokenOut"`
-	AmountOut     string           `json:"amountOut"`
-	AmountOutUsd  string           `json:"amountOutUsd"`
-	Gas           string           `json:"gas"`
-	GasPrice      string           `json:"gasPrice"`
-	GasUSD        string           `json:"gasUsd"`
-	ExtraFee      *ExtraFee        `json:"extraFee,omitempty"`
+	TokenIn       string            `json:"tokenIn"`
+	AmountIn      string            `json:"amountIn"`
+	AmountInUsd   string            `json:"amountInUsd"`
+	TokenOut      string            `json:"tokenOut"`
+	AmountOut     string            `json:"amountOut"`
+	AmountOutUsd  string            `json:"amountOutUsd"`
+	Gas           string            `json:"gas"`
+	GasPrice      string            `json:"gasPrice"`
+	GasUSD        string            `json:"gasUsd"`
+	ExtraFee      *ExtraFee         `json:"extraFee,omitempty"`
 	Route         [][]KyberSwapSwap `json:"route"`
-	RouteID       string           `json:"routeID"`
-	Checksum      string           `json:"checksum"`
-	Timestamp     int64            `json:"timestamp"`
-	RouterAddress string           `json:"routerAddress,omitempty"`
+	RouteID       string            `json:"routeID"`
+	Checksum      string            `json:"checksum"`
+	Timestamp     int64             `json:"timestamp"`
+	RouterAddress string            `json:"routerAddress,omitempty"`
 }
 
 // KyberSwapRouteEncodedData represents encoded route data
@@ -36,9 +36,9 @@ type KyberSwapRouteEncodedData struct {
 
 // KyberSwapAPIResponse represents the API response structure
 type KyberSwapAPIResponse struct {
-	Code      int    `json:"code"`
-	Message   string `json:"message"`
-	Data      struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
 		RouteSummary  KyberSwapRoute `json:"routeSummary"`
 		RouterAddress string         `json:"routerAddress"`
 	} `json:"data"`
@@ -72,4 +72,4 @@ type KyberSwapSwap struct {
 	PoolType   string                 `json:"poolType"`
 	PoolExtra  map[string]interface{} `json:"poolExtra,omitempty"`
 	Extra      map[string]interface{} `json:"extra,omitempty"`
-} 
+}

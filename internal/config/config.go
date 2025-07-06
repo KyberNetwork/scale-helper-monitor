@@ -18,13 +18,13 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Slack      SlackConfig              `mapstructure:"slack"`
-	Tenderly   TenderlyConfig           `mapstructure:"tenderly"`
-	Monitoring monitor.Config           `mapstructure:"monitoring"`
-	KyberSwap  kyberswap.Config         `mapstructure:"kyberswap"`
-	Chains     []monitor.ChainConfig    `mapstructure:"chains"`
-	TestTokens []monitor.TestToken      `mapstructure:"test_tokens"`
-	BalanceSlot map[string]map[string]map[string]string        `mapstructure:"balance_slot"`
+	Slack      SlackConfig                             `mapstructure:"slack"`
+	Tenderly   TenderlyConfig                          `mapstructure:"tenderly"`
+	Monitoring monitor.Config                          `mapstructure:"monitoring"`
+	KyberSwap  kyberswap.Config                        `mapstructure:"kyberswap"`
+	Chains     []monitor.ChainConfig                   `mapstructure:"chains"`
+	TestCases  []monitor.TestCase                      `mapstructure:"test_cases"`
+	Tokens     map[string]map[string]monitor.TokenInfo `mapstructure:"tokens"` // chain name -> token address -> token info
 }
 
 // SlackConfig represents Slack configuration
@@ -72,29 +72,29 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Set environment variables for viper to use
-	setEnvironmentVariables()
+	// // Set environment variables for viper to use
+	// setEnvironmentVariables()
 
 	// Create config struct and manually populate with environment variables
 	var config Config
-	
+
 	// Slack config
 	config.Slack.WebhookURL = os.Getenv("SLACK_WEBHOOK_URL")
-	
+
 	// Tenderly config
 	config.Tenderly.AccessKey = os.Getenv("TENDERLY_ACCESS_KEY")
 	config.Tenderly.Username = os.Getenv("TENDERLY_USERNAME")
 	config.Tenderly.Project = os.Getenv("TENDERLY_PROJECT")
-	
+
 	// Monitoring config
 	config.Monitoring.Interval = viper.GetString("monitoring.interval")
 	config.Monitoring.Timeout = viper.GetString("monitoring.timeout")
-	
+
 	// KyberSwap config
 	config.KyberSwap.APIBaseURL = viper.GetString("kyberswap.api_base_url")
 	config.KyberSwap.ClientID = viper.GetString("kyberswap.client_id")
-	
-	// Chains config
+
+	// Chains config - adding all supported chains from tokens.json
 	config.Chains = []monitor.ChainConfig{
 		{
 			Name:            "ethereum",
@@ -103,7 +103,7 @@ func Load() (*Config, error) {
 			ContractAddress: os.Getenv("ETH_CONTRACT_ADDRESS"),
 		},
 		{
-			Name:            "polygon", 
+			Name:            "polygon",
 			ChainID:         137,
 			RPCURL:          os.Getenv("POLYGON_NODE_URL"),
 			ContractAddress: os.Getenv("POLYGON_CONTRACT_ADDRESS"),
@@ -120,54 +120,126 @@ func Load() (*Config, error) {
 			RPCURL:          os.Getenv("ARBITRUM_NODE_URL"),
 			ContractAddress: os.Getenv("ARBITRUM_CONTRACT_ADDRESS"),
 		},
+		{
+			Name:            "avalanche",
+			ChainID:         43114,
+			RPCURL:          os.Getenv("AVAX_NODE_URL"),
+			ContractAddress: os.Getenv("AVAX_CONTRACT_ADDRESS"),
+		},
+		{
+			Name:            "base",
+			ChainID:         8453,
+			RPCURL:          os.Getenv("BASE_NODE_URL"),
+			ContractAddress: os.Getenv("BASE_CONTRACT_ADDRESS"),
+		},
+		{
+			Name:            "berachain",
+			ChainID:         80084,
+			RPCURL:          os.Getenv("BERA_NODE_URL"),
+			ContractAddress: os.Getenv("BERA_CONTRACT_ADDRESS"),
+		},
+		{
+			Name:            "mantle",
+			ChainID:         5000,
+			RPCURL:          os.Getenv("MANTLE_NODE_URL"),
+			ContractAddress: os.Getenv("MANTLE_CONTRACT_ADDRESS"),
+		},
+		{
+			Name:            "optimism",
+			ChainID:         10,
+			RPCURL:          os.Getenv("OPTIMISM_NODE_URL"),
+			ContractAddress: os.Getenv("OPTIMISM_CONTRACT_ADDRESS"),
+		},
+		{
+			Name:            "sonic",
+			ChainID:         146,
+			RPCURL:          os.Getenv("SONIC_NODE_URL"),
+			ContractAddress: os.Getenv("SONIC_CONTRACT_ADDRESS"),
+		},
+		{
+			Name:            "unichain",
+			ChainID:         1301,
+			RPCURL:          os.Getenv("UNICHAIN_NODE_URL"),
+			ContractAddress: os.Getenv("UNICHAIN_CONTRACT_ADDRESS"),
+		},
 	}
 
-	// Load balance slots from JSON file
-	balanceSlots, err := loadBalanceSlots()
+	// Load tokens from JSON file
+	tokens, err := loadTokens()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load balance slots: %w", err)
+		return nil, fmt.Errorf("failed to load tokens: %w", err)
 	}
-	config.BalanceSlot = balanceSlots
-	
-	// Test tokens config
-	if err := viper.UnmarshalKey("test_tokens", &config.TestTokens); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal test_tokens: %w", err)
+	config.Tokens = tokens
+
+	// Load test cases from the new nested format
+	testCases, err := loadTestCases()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load test cases: %w", err)
 	}
+	config.TestCases = testCases
 
 	return &config, nil
 }
 
-func loadBalanceSlots() (map[string]map[string]map[string]string, error) {
+func loadTokens() (map[string]map[string]monitor.TokenInfo, error) {
 	// Try to read from multiple possible locations
-	path := "./balance_slots.json"
+	path := "./tokens.json"
 	data, err := os.ReadFile(path)
-	
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to read balance_slots.json from any location: %w", err)
+		return nil, fmt.Errorf("failed to read tokens.json from any location: %w", err)
 	}
-	
-	var balanceSlots map[string]map[string]map[string]string
-	if err := json.Unmarshal(data, &balanceSlots); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal balance slots JSON: %w", err)
+
+	// First, unmarshal into the nested structure as it exists in the JSON file
+	var tokens map[string]map[string]monitor.TokenInfo
+	if err := json.Unmarshal(data, &tokens); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal tokens JSON: %w", err)
 	}
-	// fmt.Println(balanceSlots)
-	
-	return balanceSlots, nil
+
+	return tokens, nil
 }
 
-func setEnvironmentVariables() {
-	envVars := []string{
-		"ETH_NODE_URL", "POLYGON_NODE_URL", "BSC_NODE_URL", "ARBITRUM_NODE_URL",
-		"ETH_CONTRACT_ADDRESS", "POLYGON_CONTRACT_ADDRESS", "BSC_CONTRACT_ADDRESS", "ARBITRUM_CONTRACT_ADDRESS",
-		"SLACK_WEBHOOK_URL",
-		"TENDERLY_ACCESS_KEY", "TENDERLY_USERNAME", "TENDERLY_PROJECT",
+func loadTestCases() ([]monitor.TestCase, error) {
+	// Load the nested test cases structure
+	var nestedTestCases map[string][]monitor.TestCase
+	if err := viper.UnmarshalKey("test_cases", &nestedTestCases); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal test_cases: %w", err)
 	}
 
-	for _, env := range envVars {
-		if value := os.Getenv(env); value != "" {
-			// Convert environment variable name to viper key format
-			key := strings.ToLower(strings.ReplaceAll(env, "_", "."))
-			viper.Set(key, value)
+	// Flatten the nested structure into a slice, adding chain_name to each test case
+	var testCases []monitor.TestCase
+	for chainName, chainTestCases := range nestedTestCases {
+		for _, testCase := range chainTestCases {
+			testCase.ChainName = chainName
+			testCases = append(testCases, testCase)
 		}
 	}
-} 
+
+	return testCases, nil
+}
+
+// func setEnvironmentVariables() {
+// 	// envVars := []string{
+// 	// 	// Node URLs
+// 	// 	"ETH_NODE_URL", "POLYGON_NODE_URL", "BSC_NODE_URL", "ARBITRUM_NODE_URL",
+// 	// 	"AVALANCHE_NODE_URL", "BASE_NODE_URL", "BERACHAIN_NODE_URL", "MANTLE_NODE_URL",
+// 	// 	"OPTIMISM_NODE_URL", "SONIC_NODE_URL", "UNICHAIN_NODE_URL",
+
+// 	// 	// Contract addresses
+// 	// 	"ETH_CONTRACT_ADDRESS", "POLYGON_CONTRACT_ADDRESS", "BSC_CONTRACT_ADDRESS", "ARBITRUM_CONTRACT_ADDRESS",
+// 	// 	"AVALANCHE_CONTRACT_ADDRESS", "BASE_CONTRACT_ADDRESS", "BERACHAIN_CONTRACT_ADDRESS", "MANTLE_CONTRACT_ADDRESS",
+// 	// 	"OPTIMISM_CONTRACT_ADDRESS", "SONIC_CONTRACT_ADDRESS", "UNICHAIN_CONTRACT_ADDRESS",
+
+// 	// 	// External service configurations
+// 	// 	"SLACK_WEBHOOK_URL",
+// 	// 	"TENDERLY_ACCESS_KEY", "TENDERLY_USERNAME", "TENDERLY_PROJECT",
+// 	// }
+
+// 	// for _, env := range envVars {
+// 	// 	if value := os.Getenv(env); value != "" {
+// 	// 		// Convert environment variable name to viper key format
+// 	// 		key := strings.ToLower(strings.ReplaceAll(env, "_", "."))
+// 	// 		viper.Set(key, value)
+// 	// 	}
+// 	// }
+// }

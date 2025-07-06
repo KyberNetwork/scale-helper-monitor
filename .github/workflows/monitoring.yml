@@ -1,0 +1,90 @@
+name: Scale Helper Monitor
+
+on:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [ main ]
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # Reduced timeout for one-shot execution
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Build application
+      run: go build -o scale-helper-monitor ./cmd/monitor
+
+    - name: Run monitoring
+      env:
+        # Application Mode
+        RUN_ONCE: "true"  # Run once and exit (perfect for GitHub Actions)
+        
+        # Slack Configuration
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        
+        # Tenderly Configuration
+        TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+        TENDERLY_USERNAME: ${{ secrets.TENDERLY_USERNAME }}
+        TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+        
+        # Ethereum Mainnet
+        ETH_NODE_URL: ${{ secrets.ETH_NODE_URL }}
+        ETH_CONTRACT_ADDRESS: ${{ secrets.ETH_CONTRACT_ADDRESS }}
+        
+        # Polygon
+        POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+        POLYGON_CONTRACT_ADDRESS: ${{ secrets.POLYGON_CONTRACT_ADDRESS }}
+        
+        # BSC
+        BSC_NODE_URL: ${{ secrets.BSC_NODE_URL }}
+        BSC_CONTRACT_ADDRESS: ${{ secrets.BSC_CONTRACT_ADDRESS }}
+        
+        # Arbitrum
+        ARBITRUM_NODE_URL: ${{ secrets.ARBITRUM_NODE_URL }}
+        ARBITRUM_CONTRACT_ADDRESS: ${{ secrets.ARBITRUM_CONTRACT_ADDRESS }}
+        
+        # Avalanche
+        AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
+        AVALANCHE_CONTRACT_ADDRESS: ${{ secrets.AVALANCHE_CONTRACT_ADDRESS }}
+        
+        # Base
+        BASE_NODE_URL: ${{ secrets.BASE_NODE_URL }}
+        BASE_CONTRACT_ADDRESS: ${{ secrets.BASE_CONTRACT_ADDRESS }}
+        
+        # Berachain
+        BERACHAIN_NODE_URL: ${{ secrets.BERACHAIN_NODE_URL }}
+        BERACHAIN_CONTRACT_ADDRESS: ${{ secrets.BERACHAIN_CONTRACT_ADDRESS }}
+        
+        # Mantle
+        MANTLE_NODE_URL: ${{ secrets.MANTLE_NODE_URL }}
+        MANTLE_CONTRACT_ADDRESS: ${{ secrets.MANTLE_CONTRACT_ADDRESS }}
+        
+        # Optimism
+        OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
+        OPTIMISM_CONTRACT_ADDRESS: ${{ secrets.OPTIMISM_CONTRACT_ADDRESS }}
+        
+        # Sonic
+        SONIC_NODE_URL: ${{ secrets.SONIC_NODE_URL }}
+        SONIC_CONTRACT_ADDRESS: ${{ secrets.SONIC_CONTRACT_ADDRESS }}
+        
+        # Unichain
+        UNICHAIN_NODE_URL: ${{ secrets.UNICHAIN_NODE_URL }}
+        UNICHAIN_CONTRACT_ADDRESS: ${{ secrets.UNICHAIN_CONTRACT_ADDRESS }}
+      run: |
+        echo "Starting scale helper monitoring (one-shot mode)..."
+        ./scale-helper-monitor

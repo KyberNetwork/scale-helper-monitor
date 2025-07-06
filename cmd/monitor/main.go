@@ -23,6 +23,12 @@ func main() {
 		logrus.Info("Successfully loaded .env file")
 	}
 
+	var runOnce bool
+	// Check environment variable as alternative to flag
+	if os.Getenv("RUN_ONCE") == "true" {
+		runOnce = true
+	}
+
 	// Setup logger
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.TextFormatter{
@@ -30,20 +36,17 @@ func main() {
 	})
 	logger.SetLevel(logrus.InfoLevel)
 
-	// Set log level based on environment
-	if os.Getenv("DEBUG") == "true" {
-		logger.SetLevel(logrus.DebugLevel)
-	}
-
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to load configuration")
-	} else {
-		logger.Info("Configuration loaded successfully")
 	}
 
-	logger.Info("Starting Scale Helper Monitor")
+	if runOnce {
+		logger.Info("Starting Scale Helper Monitor (one-shot mode)")
+	} else {
+		logger.Info("Starting Scale Helper Monitor (continuous mode)")
+	}
 
 	// Parse timeout for clients
 	timeout, err := time.ParseDuration(cfg.Monitoring.Timeout)
@@ -59,9 +62,9 @@ func main() {
 	// Create monitor
 	monitorService, err := monitor.NewMonitor(
 		&cfg.Monitoring,
-		cfg.BalanceSlot,
+		cfg.TestCases,
+		cfg.Tokens,
 		cfg.Chains,
-		cfg.TestTokens,
 		kyberClient,
 		slackClient,
 		tenderlyClient,
@@ -70,12 +73,25 @@ func main() {
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to create monitor")
 	}
-	defer monitorService.Close() // Closes RPC connections on exit (mainly for clean logging)
+	defer monitorService.Close()
 
 	// Create context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if runOnce {
+		// One-shot mode: run monitoring once and exit
+		logger.Info("Running monitoring once...")
+		err := monitorService.RunMonitoringOnce(ctx)
+		if err != nil {
+			logger.WithError(err).Error("Monitoring failed")
+			os.Exit(1)
+		}
+		logger.Info("Monitoring completed successfully")
+		return
+	}
+
+	// Continuous mode: original behavior with signals and loops
 	// Handle shutdown signals
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -91,7 +107,7 @@ func main() {
 	case sig := <-sigChan:
 		logger.WithField("signal", sig).Info("Received shutdown signal")
 		cancel()
-		
+
 		// Wait for monitoring to stop
 		select {
 		case err := <-monitorDone:
@@ -108,4 +124,4 @@ func main() {
 	}
 
 	logger.Info("Scale Helper Monitor stopped")
-} 
+}

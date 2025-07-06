@@ -15,15 +15,15 @@ import (
 // This is a temporary interface until we fully refactor
 type MonitoringResult interface {
 	GetChainName() string
-	GetChainID() int
 	GetTokenIn() string
 	GetTokenOut() string
 	GetAmount() string
+	GetNewAmount() string
 	GetIsSuccess() bool
 	GetError() string
 	GetInputData() string
 	GetReturnedData() string
-	GetRoute() [][]kyberswap.KyberSwapSwap 
+	GetRoute() [][]kyberswap.KyberSwapSwap
 	GetOriginalTenderlyURL() string
 	GetScaledTenderlyURL() string
 }
@@ -53,43 +53,45 @@ func (c *Client) SendAlert(result MonitoringResult) error {
 
 	// Create Slack message
 	message := c.createAlertMessage(result)
-	
+
 	// Marshal to JSON
 	payload, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("failed to marshal Slack message: %w", err)
 	}
-	
+
 	// Send to Slack
 	resp, err := c.client.Post(c.webhookURL, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		return fmt.Errorf("failed to send Slack message: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Slack returned status %d", resp.StatusCode)
 	}
-	
+
 	c.logger.WithFields(logrus.Fields{
-		"chain":    result.GetChainName(),
-		"tokenIn":  result.GetTokenIn(),
-		"tokenOut": result.GetTokenOut(),
+		"chain":     result.GetChainName(),
+		"tokenIn":   result.GetTokenIn(),
+		"tokenOut":  result.GetTokenOut(),
+		"amount":    result.GetAmount(),
+		"newAmount": result.GetNewAmount(),
 	}).Info("Successfully sent Slack alert")
-	
+
 	return nil
 }
 
 func (c *Client) createAlertMessage(result MonitoringResult) *Message {
 	title := "🚨 Scale Helper Monitor Alert"
-	
+
 	color := "danger" // Red for failures
-	
+
 	// Create fields
 	fields := []Field{
 		{
 			Title: "Chain",
-			Value: fmt.Sprintf("%s (Chain ID: %d)", result.GetChainName(), result.GetChainID()),
+			Value: fmt.Sprintf("%s", result.GetChainName()),
 			Short: true,
 		},
 		{
@@ -102,8 +104,13 @@ func (c *Client) createAlertMessage(result MonitoringResult) *Message {
 			Value: result.GetAmount(),
 			Short: true,
 		},
+		{
+			Title: "New Amount",
+			Value: result.GetNewAmount(),
+			Short: true,
+		},
 	}
-	
+
 	// Add Tenderly simulation links
 	if originalURL := result.GetOriginalTenderlyURL(); originalURL != "" {
 		fields = append(fields, Field{
@@ -112,7 +119,7 @@ func (c *Client) createAlertMessage(result MonitoringResult) *Message {
 			Short: true,
 		})
 	}
-	
+
 	if scaledURL := result.GetScaledTenderlyURL(); scaledURL != "" {
 		fields = append(fields, Field{
 			Title: "Scaled Swap Simulation",
@@ -120,7 +127,7 @@ func (c *Client) createAlertMessage(result MonitoringResult) *Message {
 			Short: true,
 		})
 	}
-	
+
 	// Add error field if there's an error
 	if result.GetError() != "" {
 		fields = append(fields, Field{
@@ -130,7 +137,7 @@ func (c *Client) createAlertMessage(result MonitoringResult) *Message {
 		})
 	}
 	route := result.GetRoute()
-	
+
 	for i, swap := range route {
 		fields = append(fields, Field{
 			Title: fmt.Sprintf("Pool %d", i+1),
@@ -138,19 +145,19 @@ func (c *Client) createAlertMessage(result MonitoringResult) *Message {
 			Short: false,
 		})
 	}
-	
+
 	// Create attachment
 	attachment := Attachment{
 		Color:  color,
 		Title:  fmt.Sprintf("Scaled swap simulation failed on %s", result.GetChainName()),
 		Fields: fields,
 	}
-	
+
 	// Create message
 	message := &Message{
 		Text:        title,
 		Attachments: []Attachment{attachment},
 	}
-	
+
 	return message
 }

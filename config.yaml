@@ -1,6 +1,3 @@
-slack:
-  webhook_url: "${SLACK_WEBHOOK_URL}" # Set this environment variable
-  
 monitoring:
   interval: "5s" # How often to check
   timeout: "10s"  # Timeout for each call
@@ -8,46 +5,141 @@ monitoring:
 kyberswap:
   api_base_url: "https://aggregator-api.kyberswap.com"
   client_id: "scale-helper-test"
-  
-chains:
-  - name: "ethereum"
-    chain_id: 1
-    rpc_url: "${ETH_NODE_URL}" # Set this environment variable
-    contract_address: "${ETH_CONTRACT_ADDRESS}" # Set this environment variable
-    
-  - name: "polygon"
-    chain_id: 137
-    rpc_url: "${POLYGON_NODE_URL}" # Set this environment variable  
-    contract_address: "${POLYGON_CONTRACT_ADDRESS}" # Set this environment variable
-    
-  - name: "bsc"
-    chain_id: 56
-    rpc_url: "${BSC_NODE_URL}" # Set this environment variable
-    contract_address: "${BSC_CONTRACT_ADDRESS}" # Set this environment variable
-    
-  - name: "arbitrum"
-    chain_id: 42161
-    rpc_url: "${ARBITRUM_NODE_URL}" # Set this environment variable
-    contract_address: "${ARBITRUM_CONTRACT_ADDRESS}" # Set this environment variable
 
-test_tokens:
-  # Test token pairs for monitoring
-  - chain_name: "polygon"
-    token_in: "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619" # WETH
-    token_out: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174" # USDC
-    amount: "1000000000000000000" # 100 WETH
-    
-  - chain_name: "ethereum"
-    token_in: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" # WETH
-    token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
-    amount: "1000000000000000000" # 1 WETH 
+test_cases:
+  arbitrum:
+    - token_in: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"  # WETH
+      token_out: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9" # USDT
+      amount: "1"
 
-  - chain_name: "bsc" 
-    token_in: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c" # WBNB
-    token_out: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d" # USDC
-    amount: "1000000000000000000" # 1 WBNB
+    - token_in: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"  # WETH
+      token_out: "0xaf88d065e77c8cc2239327c5edb3a432268e5831" # USDC
+      amount: "1"
 
-  - chain_name: "arbitrum"
-    token_in: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1" # WETH
-    token_out: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" # USDC
-    amount: "1000000000000000000" # 1 WETH
+    - token_in: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"  # WETH
+      token_out: "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f" # WBTC
+      amount: "1"
+
+    - token_in: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"  # USDT
+      token_out: "0xaf88d065e77c8cc2239327c5edb3a432268e5831" # USDC
+      amount: "1000"
+
+  avalanche:
+    - token_in: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"  # USDC
+      token_out: "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7" # USDT
+      amount: "1000"
+
+  base:
+    - token_in: "0x4200000000000000000000000000000000000006"  # WETH
+      token_out: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" # USDC
+      amount: "1"
+      
+    - token_in: "0x4200000000000000000000000000000000000006"  # WETH
+      token_out: "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42" # EURC
+      amount: "1"
+
+    - token_in: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"  # USDC
+      token_out: "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42" # EURC
+      amount: "1000"
+
+  berachain:
+    - token_in: "0x779ded0c9e1022225f8e0630b35a9b54be713736"  # WETH
+      token_out: "0x549943e04f40284185054145c6e4e9568c1d3241" # USDC
+      amount: "1"
+
+    - token_in: "0x779ded0c9e1022225f8e0630b35a9b54be713736"  # WETH
+      token_out: "0x0555e30da8f98308edb960aa94c0db47230d2b9c" # WBTC
+      amount: "1"
+
+  bsc:
+    - token_in: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"  # WBNB
+      token_out: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d" # USDC
+      amount: "1"
+
+    - token_in: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"  # WBNB
+      token_out: "0x55d398326f99059ff775485246999027b3197955" # USDT
+      amount: "1"
+
+    - token_in: "0x2170ed0880ac9a755fd29b2688956bd959f933f8"  # ETH
+      token_out: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d" # USDC
+      amount: "1"
+
+    - token_in: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"  # USDC
+      token_out: "0x55d398326f99059ff775485246999027b3197955" # USDT
+      amount: "1000"
+
+  ethereum:
+    - token_in: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
+      token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
+      amount: "1"
+
+    - token_in: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
+      token_out: "0xdac17f958d2ee523a2206206994597c13d831ec7" # USDT
+      amount: "1"
+
+    - token_in: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
+      token_out: "0x6b175474e89094c44da98b954eedeac495271d0f" # DAI
+      amount: "1"
+
+    - token_in: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # USDC
+      token_out: "0xdac17f958d2ee523a2206206994597c13d831ec7" # USDT
+      amount: "1000"
+
+    - token_in: "0x6b175474e89094c44da98b954eedeac495271d0f"  # DAI
+      token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
+      amount: "1000"
+
+  mantle:
+    - token_in: "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"  # mUSD
+      token_out: "0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9" # USDC
+      amount: "1000"
+
+    - token_in: "0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9"  # USDC
+      token_out: "0x201eba5cc46d216ce6dc03f6a759e8e766e956ae" # USDT
+      amount: "1000"
+
+  optimism:
+    - token_in: "0x0b2c639c533813f4aa9d7837caf62653d097ff85"  # USDC
+      token_out: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58" # USDT
+      amount: "1000"
+
+    - token_in: "0x01bff41798a0bcf287b996046ca68b395dbc1071"  # USD₮0
+      token_out: "0x0b2c639c533813f4aa9d7837caf62653d097ff85" # USDC
+      amount: "1000"
+
+  polygon:
+    - token_in: "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619"  # WETH
+      token_out: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" # USDT
+      amount: "1"
+
+    - token_in: "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619"  # WETH
+      token_out: "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6" # WBTC
+      amount: "1"
+
+    - token_in: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"  # USDT
+      token_out: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359" # USDC
+      amount: "1000"
+
+  sonic:
+    - token_in: "0x50c42deacd8fc9773493ed674b675be577f2634b"  # WETH
+      token_out: "0x29219dd400f2bf60e5a23d13be72b486d4038894" # USDC
+      amount: "1"
+
+    - token_in: "0x50c42deacd8fc9773493ed674b675be577f2634b"  # WETH
+      token_out: "0x0555e30da8f98308edb960aa94c0db47230d2b9c" # WBTC
+      amount: "1"
+
+    - token_in: "0x79bbf4508b1391af3a0f4b30bb5fc4aa9ab0e07c"  # Anon
+      token_out: "0x29219dd400f2bf60e5a23d13be72b486d4038894" # USDC
+      amount: "1000"
+
+  unichain:
+    - token_in: "0x9151434b16b9763660705744891fa906f660ecc5"  # USD₮0
+      token_out: "0x078d782b760474a361dda0af3839290b0ef57ad6" # USDC
+      amount: "1000"
+      
+    - token_in: "0x20cab320a855b39f724131c69424240519573f81"  # DAI
+      token_out: "0x078d782b760474a361dda0af3839290b0ef57ad6" # USDC
+      amount: "1000"
+
+
