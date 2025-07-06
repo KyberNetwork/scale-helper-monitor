@@ -1,6 +1,6 @@
 # Scale Helper Monitor
 
-A monitoring service that checks the `getScaledInputData` function across multiple blockchains and sends Slack alerts when the function returns false.
+A monitoring service that checks the `getScaledInputData` function across multiple blockchains and sends batch Slack alerts when the function returns false.
 
 ## Overview
 
@@ -17,8 +17,6 @@ This service:
 - **KyberSwap integration**: Automatically fetches encoded swap data from KyberSwap API
 - **Slack alerts**: Detailed alerts with token information, chain details, and error context
 - **Configurable monitoring**: Adjust intervals, timeouts, and token pairs
-- **Graceful shutdown**: Handles SIGINT/SIGTERM for clean shutdowns
-- **Environment variable support**: Easy deployment with environment variables
 
 ## Prerequisites
 
@@ -47,27 +45,7 @@ go mod tidy
 
 ### Environment Variables
 
-Create a `.env` file or set these environment variables:
-
-````bash
-# Slack Configuration
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
-
-# Ethereum Mainnet
-ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY
-ETH_CONTRACT_ADDRESS=0x1234567890abcdef1234567890abcdef12345678
-
-# Polygon
-POLYGON_RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/YOUR_API_KEY
-POLYGON_CONTRACT_ADDRESS=0x1234567890abcdef1234567890abcdef12345678
-
-# Binance Smart Chain
-BSC_RPC_URL=https://bsc-dataseed.binance.org
-BSC_CONTRACT_ADDRESS=0x1234567890abcdef1234567890abcdef12345678
-
-# Arbitrum
-ARBITRUM_RPC_URL=https://arb-mainnet.g.alchemy.com/v2/YOUR_API_KEY
-ARBITRUM_CONTRACT_ADDRESS=0x1234567890abcdef1234567890abcdef12345678
+Checkout `env.example`
 
 ### Configuration File
 
@@ -75,8 +53,7 @@ The service reads from `config.yaml`. You can customize:
 
 - **Monitoring interval**: How often to check contracts
 - **API timeout**: Timeout for API and RPC calls
-- **Test tokens**: Token pairs to monitor on each chain
-- **Chain configurations**: RPC URLs and contract addresses
+- **Test cases**: Test case to monitor on each chain
 
 ## Usage
 
@@ -89,16 +66,6 @@ go run .
 # Build and run binary
 go build -o scale-helper-monitor
 ./scale-helper-monitor
-````
-
-### Docker Support
-
-```bash
-# Build Docker image
-docker build -t scale-helper-monitor .
-
-# Run with environment variables
-docker run --env-file .env scale-helper-monitor
 ```
 
 ## Smart Contract Interface
@@ -122,21 +89,69 @@ The service integrates with [KyberSwap Aggregator API](https://docs.kyberswap.co
 
 ## Slack Alerts
 
-When `getScaledInputData` returns `false`, the service sends detailed Slack alerts containing:
+When `getScaledInputData` returns `false`, the service collects all failures from a monitoring run and sends a single batch alert containing:
+
+### Alert Summary
+
+- **Total failures count**
+- **Total test cases executed**
+- **Success rate percentage**
+- **Affected chains list**
+
+### Individual Failure Details
+
+For each failure, the alert includes:
 
 - Chain name and ID
 - Token pair information (symbols and addresses)
-- Transaction amounts in USD
-- Input data
-- Returned data from the contract
-- Timestamp and error details
+- Original and scaled transaction amounts
+- Input data and returned data from the contract
+- Error details and timestamp
+- Tenderly simulation links (original and scaled swaps)
+
+### Route Sequence Information
+
+Detailed swap route breakdown showing:
+
+- **Number of sequence steps**
+- **Pool information for each step**:
+  - Pool type (e.g., UniswapV2, UniswapV3, Curve)
+  - Exchange name
+  - Pool-specific details
+
+### Example Alert Structure
+
+```
+🚨 Scale Helper Monitor Alert - 2 Failures
+
+📊 Alert Summary
+Total Failures: 2
+Total Test Cases: 10
+Success Rate: 80.00%
+Affected Chains: ethereum, arbitrum
+
+❌ Failure 1: ethereum
+Chain: ethereum
+Token Addresses: In: 0x..., Out: 0x...
+Sequence Details:
+--- Step 1 ---
+Pool 1:
+  Type: UniswapV3
+  Exchange: Uniswap V3
+--- Step 2 ---
+Pool 1:
+  Type: Curve
+  Exchange: Curve Finance
+```
 
 ## Monitoring Logic
 
 For each configured token pair, the service:
 
-1. **Fetches route**: Calls KyberSwap API to get encoded swap data
-2. **Scales amount**: Creates a new amount (110% of original) to test scaling
-3. **Calls contract**: Invokes `getScaledInputData` with the encoded data and new amount
-4. **Checks result**: If `isSuccess` is `false`, sends a Slack alert
-5. **Logs activity**: Records all operations with structured logging
+1. **Fetches route**: Calls KyberSwap API to get encoded swap data with detailed sequence information
+2. **Scales amount**: Creates a new amount (random percentage) to test scaling
+3. **Simulates original**: Uses Tenderly to verify the original swap works
+4. **Calls contract**: Invokes `getScaledInputData` with the encoded data and new amount
+5. **Simulates scaled**: Uses Tenderly to test the scaled swap data
+6. **Sends batch alert**: After all test cases complete, sends a single consolidated alert if there are failures
+7. **Logs activity**: Records all operations with structured logging and success rate tracking
