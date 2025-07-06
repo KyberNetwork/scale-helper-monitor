@@ -72,9 +72,6 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// // Set environment variables for viper to use
-	// setEnvironmentVariables()
-
 	// Create config struct and manually populate with environment variables
 	var config Config
 
@@ -217,29 +214,3 @@ func loadTestCases() ([]monitor.TestCase, error) {
 
 	return testCases, nil
 }
-
-// func setEnvironmentVariables() {
-// 	// envVars := []string{
-// 	// 	// Node URLs
-// 	// 	"ETH_NODE_URL", "POLYGON_NODE_URL", "BSC_NODE_URL", "ARBITRUM_NODE_URL",
-// 	// 	"AVALANCHE_NODE_URL", "BASE_NODE_URL", "BERACHAIN_NODE_URL", "MANTLE_NODE_URL",
-// 	// 	"OPTIMISM_NODE_URL", "SONIC_NODE_URL", "UNICHAIN_NODE_URL",
-
-// 	// 	// Contract addresses
-// 	// 	"ETH_CONTRACT_ADDRESS", "POLYGON_CONTRACT_ADDRESS", "BSC_CONTRACT_ADDRESS", "ARBITRUM_CONTRACT_ADDRESS",
-// 	// 	"AVALANCHE_CONTRACT_ADDRESS", "BASE_CONTRACT_ADDRESS", "BERACHAIN_CONTRACT_ADDRESS", "MANTLE_CONTRACT_ADDRESS",
-// 	// 	"OPTIMISM_CONTRACT_ADDRESS", "SONIC_CONTRACT_ADDRESS", "UNICHAIN_CONTRACT_ADDRESS",
-
-// 	// 	// External service configurations
-// 	// 	"SLACK_WEBHOOK_URL",
-// 	// 	"TENDERLY_ACCESS_KEY", "TENDERLY_USERNAME", "TENDERLY_PROJECT",
-// 	// }
-
-// 	// for _, env := range envVars {
-// 	// 	if value := os.Getenv(env); value != "" {
-// 	// 		// Convert environment variable name to viper key format
-// 	// 		key := strings.ToLower(strings.ReplaceAll(env, "_", "."))
-// 	// 		viper.Set(key, value)
-// 	// 	}
-// 	// }
-// }

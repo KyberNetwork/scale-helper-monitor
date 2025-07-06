@@ -10,5 +10,5 @@ type CallGetScaledInputDataError struct {
 }
 
 func (e *CallGetScaledInputDataError) Error() string {
-	return fmt.Sprintf("CallGetScaledInputData Error [Chain %s]: %s", e.ChainName, e.Message)
+	return fmt.Sprintf("Scale Helper Error: %s", e.Message)
 }

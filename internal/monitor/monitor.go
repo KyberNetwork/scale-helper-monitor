@@ -279,7 +279,7 @@ func (m *Monitor) MonitorChain(ctx context.Context, testCase TestCase) (*Result,
 			Amount:              testCase.Amount,
 			InputData:           routeEncodedData.Data,
 			NewAmount:           newAmount.String(),
-			Error:               fmt.Sprintf("Scale helper call failed: %v", err),
+			Error:               fmt.Sprintf("Scale Failed: %v", err),
 			Route:               route.Route,
 			OriginalTenderlyURL: originalTenderlyURL,
 		}, err
@@ -486,17 +486,17 @@ func (m *Monitor) callGetScaledInputData(ctx context.Context, client *ethclient.
 func (m *Monitor) RunMonitoringOnce(ctx context.Context) error {
 	m.logger.Info("Running one-shot monitoring check")
 
+	var failures []slack.MonitoringResult
+
 	// Monitor each test case
-	for _, testCase := range m.testCases {
+	for i, testCase := range m.testCases {
 		result, err := m.MonitorChain(ctx, testCase)
 		if err != nil {
-			// Only send alert for CallGetScaledInputDataError (scale helper or simulation failures)
+			// Only collect failures for CallGetScaledInputDataError (scale helper or simulation failures)
 			var scaleHelperErr *CallGetScaledInputDataError
 			if errors.As(err, &scaleHelperErr) && result != nil {
-				if alertErr := m.slackClient.SendAlert(result); alertErr != nil {
-					m.logger.WithError(alertErr).Error("Failed to send Slack alert")
-				}
-
+				// Add to failures collection instead of sending individual alert
+				failures = append(failures, result)
 				m.logger.WithError(err).Error("Monitoring check failed")
 			} else {
 				// For other errors (API failures, network issues), just log
@@ -510,6 +510,19 @@ func (m *Monitor) RunMonitoringOnce(ctx context.Context) error {
 			"chain":    result.ChainName,
 			"tokenIn":  m.tokens[result.ChainName][result.TokenIn].Symbol,
 			"tokenOut": m.tokens[result.ChainName][result.TokenOut].Symbol,
+		}).Info(fmt.Sprintf("Test case %d completed", i+1))
+	}
+
+	// Send batch alert if there are any failures
+	if len(failures) > 0 {
+		if alertErr := m.slackClient.SendAlert(failures, len(m.testCases)); alertErr != nil {
+			m.logger.WithError(alertErr).Error("Failed to send Slack alert")
+		}
+		m.logger.WithFields(logrus.Fields{
+			"Total test cases": len(m.testCases),
+			"Run on chains":    len(m.chains),
+			"Failures":         len(failures),
+			"Success Rate":     fmt.Sprintf("%.2f%%", float64(len(m.testCases)-len(failures))/float64(len(m.testCases))*100),
 		}).Info("Monitoring check completed")
 	}
 
@@ -537,18 +550,17 @@ func (m *Monitor) RunMonitoring(ctx context.Context) error {
 			return ctx.Err()
 
 		case <-ticker.C:
+			var failures []slack.MonitoringResult
 
 			// Monitor each test case
 			for _, testCase := range m.testCases {
 				result, err := m.MonitorChain(ctx, testCase)
 				if err != nil {
-					// Only send alert for CallGetScaledInputDataError (scale helper or simulation failures)
+					// Only collect failures for CallGetScaledInputDataError (scale helper or simulation failures)
 					var scaleHelperErr *CallGetScaledInputDataError
 					if errors.As(err, &scaleHelperErr) && result != nil {
-						if alertErr := m.slackClient.SendAlert(result); alertErr != nil {
-							m.logger.WithError(alertErr).Error("Failed to send Slack alert")
-						}
-
+						// Add to failures collection instead of sending individual alert
+						failures = append(failures, result)
 						m.logger.WithError(err).Error("Monitoring check failed")
 					} else {
 						// For other errors (API failures, network issues), just log
@@ -563,6 +575,21 @@ func (m *Monitor) RunMonitoring(ctx context.Context) error {
 					"tokenIn":  m.tokens[result.ChainName][result.TokenIn].Symbol,
 					"tokenOut": m.tokens[result.ChainName][result.TokenOut].Symbol,
 				}).Info("Monitoring check completed")
+			}
+
+			// Send batch alert if there are any failures
+			if len(failures) > 0 {
+				if alertErr := m.slackClient.SendAlert(failures, len(m.testCases)); alertErr != nil {
+					m.logger.WithError(alertErr).Error("Failed to send Slack alert")
+				}
+				m.logger.WithFields(logrus.Fields{
+					"Total test cases": len(m.testCases),
+					"Run on chains":    len(m.chains),
+					"Failures":         len(failures),
+					"Success Rate":     fmt.Sprintf("%.2f%%", float64(len(m.testCases)-len(failures))/float64(len(m.testCases))*100),
+				}).Info("Monitoring check completed")
+			} else {
+				m.logger.Info("All test cases passed successfully on all chains")
 			}
 		}
 	}

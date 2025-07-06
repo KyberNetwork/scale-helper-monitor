@@ -45,14 +45,18 @@ func NewClient(webhookURL string, timeout time.Duration, logger *logrus.Logger) 
 }
 
 // SendAlert sends an alert to Slack when monitoring fails
-func (c *Client) SendAlert(result MonitoringResult) error {
+func (c *Client) SendAlert(failures []MonitoringResult, totalTestCases int) error {
 	if c.webhookURL == "" {
 		c.logger.Warn("Slack webhook URL not configured, skipping alert")
 		return nil
 	}
 
-	// Create Slack message
-	message := c.createAlertMessage(result)
+	if len(failures) == 0 {
+		return nil
+	}
+
+	// Create Slack message for multiple results
+	message := c.createAlertMessage(failures, totalTestCases)
 
 	// Marshal to JSON
 	payload, err := json.Marshal(message)
@@ -71,27 +75,70 @@ func (c *Client) SendAlert(result MonitoringResult) error {
 		return fmt.Errorf("Slack returned status %d", resp.StatusCode)
 	}
 
-	c.logger.WithFields(logrus.Fields{
-		"chain":     result.GetChainName(),
-		"tokenIn":   result.GetTokenIn(),
-		"tokenOut":  result.GetTokenOut(),
-		"amount":    result.GetAmount(),
-		"newAmount": result.GetNewAmount(),
-	}).Info("Successfully sent Slack alert")
-
 	return nil
 }
 
-func (c *Client) createAlertMessage(result MonitoringResult) *Message {
-	title := "🚨 Scale Helper Monitor Alert"
+func (c *Client) createAlertMessage(failures []MonitoringResult, totalTestCases int) *Message {
+	failureCount := len(failures)
+	title := fmt.Sprintf("🚨 Scale Helper Monitor Alert - %d Failures - %s",
+		failureCount, time.Now().Format(time.RFC1123))
 
-	color := "danger" // Red for failures
+	// Create a summary attachment
+	summaryFields := []Field{
+		{
+			Title: "Total Failures",
+			Value: fmt.Sprintf("%d", failureCount),
+			Short: true,
+		},
+		{
+			Title: "Total Test Cases",
+			Value: fmt.Sprintf("%d", totalTestCases),
+			Short: true,
+		},
+		{
+			Title: "Success Rate",
+			Value: fmt.Sprintf("%.2f%%", float64(totalTestCases-failureCount)/float64(totalTestCases)*100),
+			Short: true,
+		},
+		{
+			Title: "Affected Chains",
+			Value: c.formatChainList(c.getUniqueChains(failures)),
+			Short: true,
+		},
+	}
 
-	// Create fields
+	summaryAttachment := Attachment{
+		Color:  "danger",
+		Title:  "📊 Alert Summary",
+		Fields: summaryFields,
+	}
+
+	attachments := []Attachment{summaryAttachment}
+
+	// Create individual attachments for each failure
+	for i, result := range failures {
+		fields := c.createResultFields(result)
+
+		attachment := Attachment{
+			Color:  "danger",
+			Title:  fmt.Sprintf("❌ Failure %d: %s", i+1, result.GetChainName()),
+			Fields: fields,
+		}
+		attachments = append(attachments, attachment)
+	}
+
+	return &Message{
+		Text:        title,
+		Attachments: attachments,
+	}
+}
+
+// createResultFields creates common fields for a monitoring result
+func (c *Client) createResultFields(result MonitoringResult) []Field {
 	fields := []Field{
 		{
 			Title: "Chain",
-			Value: fmt.Sprintf("%s", result.GetChainName()),
+			Value: result.GetChainName(),
 			Short: true,
 		},
 		{
@@ -136,28 +183,69 @@ func (c *Client) createAlertMessage(result MonitoringResult) *Message {
 			Short: false,
 		})
 	}
-	route := result.GetRoute()
 
-	for i, swap := range route {
+	// Add detailed route sequence information with pool types
+	route := result.GetRoute()
+	if len(route) > 0 {
+		routeInfo := fmt.Sprintf("```Sequence Steps: %d\n", len(route))
+		
+		for i, sequence := range route {
+			routeInfo += fmt.Sprintf("\n--- Step %d ---\n", i+1)
+			
+			if len(sequence) > 0 {
+				for j, swap := range sequence {
+					routeInfo += fmt.Sprintf("Pool %d:\n", j+1)
+					routeInfo += fmt.Sprintf("  Type: %s\n", swap.PoolType)
+					routeInfo += fmt.Sprintf("  Exchange: %s\n", swap.Exchange)
+					if j < len(sequence)-1 {
+						routeInfo += "\n"
+					}
+				}
+			}
+		}
+		routeInfo += "```"
+		
 		fields = append(fields, Field{
-			Title: fmt.Sprintf("Pool %d", i+1),
-			Value: fmt.Sprintf("```Pool Type: %s \n Exchange: %s \n TokenIn: %s \n TokenOut: %s ", swap[0].PoolType, swap[0].Exchange, swap[0].TokenIn, swap[0].TokenOut),
+			Title: "Sequence Details",
+			Value: routeInfo,
 			Short: false,
 		})
 	}
 
-	// Create attachment
-	attachment := Attachment{
-		Color:  color,
-		Title:  fmt.Sprintf("Scaled swap simulation failed on %s", result.GetChainName()),
-		Fields: fields,
+	return fields
+}
+
+// getUniqueChains extracts unique chain names from results
+func (c *Client) getUniqueChains(results []MonitoringResult) []string {
+	chainMap := make(map[string]bool)
+	for _, result := range results {
+		chainMap[result.GetChainName()] = true
 	}
 
-	// Create message
-	message := &Message{
-		Text:        title,
-		Attachments: []Attachment{attachment},
+	chains := make([]string, 0, len(chainMap))
+	for chain := range chainMap {
+		chains = append(chains, chain)
 	}
+	return chains
+}
 
-	return message
+// formatChainList formats a list of chains for display
+func (c *Client) formatChainList(chains []string) string {
+	if len(chains) == 0 {
+		return "None"
+	}
+	if len(chains) == 1 {
+		return chains[0]
+	}
+	if len(chains) <= 3 {
+		result := ""
+		for i, chain := range chains {
+			if i > 0 {
+				result += ", "
+			}
+			result += chain
+		}
+		return result
+	}
+	return fmt.Sprintf("%s, %s, and %d more", chains[0], chains[1], len(chains)-2)
 }
