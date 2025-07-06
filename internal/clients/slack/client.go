@@ -80,8 +80,11 @@ func (c *Client) SendAlert(failures []MonitoringResult, totalTestCases int) erro
 
 func (c *Client) createAlertMessage(failures []MonitoringResult, totalTestCases int) *Message {
 	failureCount := len(failures)
+	// Convert to GMT+7 timezone
+	loc, _ := time.LoadLocation("Asia/Bangkok") // GMT+7
+	localTime := time.Now().In(loc)
 	title := fmt.Sprintf("🚨 Scale Helper Monitor Alert - %d Failures - %s",
-		failureCount, time.Now().Format(time.RFC1123))
+		failureCount, localTime.Format(time.RFC1123))
 
 	// Create a summary attachment
 	summaryFields := []Field{
@@ -188,10 +191,10 @@ func (c *Client) createResultFields(result MonitoringResult) []Field {
 	route := result.GetRoute()
 	if len(route) > 0 {
 		routeInfo := fmt.Sprintf("```Sequence Steps: %d\n", len(route))
-		
+
 		for i, sequence := range route {
 			routeInfo += fmt.Sprintf("\n--- Step %d ---\n", i+1)
-			
+
 			if len(sequence) > 0 {
 				for j, swap := range sequence {
 					routeInfo += fmt.Sprintf("Pool %d:\n", j+1)
@@ -204,7 +207,7 @@ func (c *Client) createResultFields(result MonitoringResult) []Field {
 			}
 		}
 		routeInfo += "```"
-		
+
 		fields = append(fields, Field{
 			Title: "Sequence Details",
 			Value: routeInfo,
