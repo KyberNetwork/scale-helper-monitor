@@ -400,23 +400,26 @@ func (m *Monitor) MonitorChain(ctx context.Context, testCase TestCase) (*Result,
 // callGetScaledInputData calls the getScaledInputData function on the contract
 func (m *Monitor) callGetScaledInputData(ctx context.Context, client *ethclient.Client, contractAddress string, inputData []byte, newAmount *big.Int) (*ContractCallResult, error) {
 	// Find the chain ID from the contract address
+	chainID, err := client.ChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chain ID: %v", err)
+	}
+
 	var chainName string
-	var chainFound bool
 	for _, chain := range m.chains {
-		if chain.ContractAddress == contractAddress {
+		if chain.ChainID == int(chainID.Int64()) {
 			chainName = chain.Name
-			chainFound = true
 			break
 		}
 	}
 
 	// If chain not found, log error with more details
-	if !chainFound {
+	if contractAddress == "" {
 		m.logger.WithFields(logrus.Fields{
-			"contractAddress": contractAddress,
-			"availableChains": m.chains,
-		}).Error("Contract address not found in any configured chain")
-		return nil, fmt.Errorf("contract address %s not found in any configured chain", contractAddress)
+			"chainName":       chainName,
+			"chainID":         chainID.String(),
+		}).Error("Chain not found")
+		return nil, fmt.Errorf("chain not found")
 	}
 
 	// Pack the function call
@@ -513,18 +516,15 @@ func (m *Monitor) RunMonitoringOnce(ctx context.Context) error {
 		}).Info(fmt.Sprintf("Test case %d completed", i+1))
 	}
 
-	// Send batch alert if there are any failures
-	if len(failures) > 0 {
-		if alertErr := m.slackClient.SendAlert(failures, len(m.testCases)); alertErr != nil {
-			m.logger.WithError(alertErr).Error("Failed to send Slack alert")
-		}
-		m.logger.WithFields(logrus.Fields{
-			"Total test cases": len(m.testCases),
-			"Run on chains":    len(m.chains),
-			"Failures":         len(failures),
-			"Success Rate":     fmt.Sprintf("%.2f%%", float64(len(m.testCases)-len(failures))/float64(len(m.testCases))*100),
-		}).Info("Monitoring check completed")
+	if alertErr := m.slackClient.SendAlert(failures, len(m.testCases)); alertErr != nil {
+		m.logger.WithError(alertErr).Error("Failed to send Slack alert")
 	}
+	m.logger.WithFields(logrus.Fields{
+		"Total test cases": len(m.testCases),
+		"Run on chains":    len(m.chains),
+		"Failures":         len(failures),
+		"Success Rate":     fmt.Sprintf("%.2f%%", float64(len(m.testCases)-len(failures))/float64(len(m.testCases))*100),
+	}).Info("Monitoring check completed")
 
 	m.logger.Info("One-shot monitoring completed")
 	return nil

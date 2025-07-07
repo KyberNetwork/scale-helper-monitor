@@ -109,11 +109,9 @@ func main() {
 		cancel()
 
 		// Wait for monitoring to stop
-		select {
-		case err := <-monitorDone:
-			if err != nil && err != context.Canceled {
-				logger.WithError(err).Error("Monitoring stopped with error")
-			}
+		err := <-monitorDone
+		if err != nil && err != context.Canceled {
+			logger.WithError(err).Error("Monitoring stopped with error")
 		}
 
 	case err := <-monitorDone:

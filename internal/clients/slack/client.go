@@ -51,11 +51,7 @@ func (c *Client) SendAlert(failures []MonitoringResult, totalTestCases int) erro
 		return nil
 	}
 
-	if len(failures) == 0 {
-		return nil
-	}
-
-	// Create Slack message for multiple results
+	// Create Slack message for results (both failures and success)
 	message := c.createAlertMessage(failures, totalTestCases)
 
 	// Marshal to JSON
@@ -83,6 +79,48 @@ func (c *Client) createAlertMessage(failures []MonitoringResult, totalTestCases 
 	// Convert to GMT+7 timezone
 	loc, _ := time.LoadLocation("Asia/Bangkok") // GMT+7
 	localTime := time.Now().In(loc)
+	
+	// Handle positive message when no failures
+	if failureCount == 0 {
+		title := fmt.Sprintf("✅ Scale Helper Monitor - All Tests Passed - %s",
+			localTime.Format(time.RFC1123))
+
+		summaryFields := []Field{
+			{
+				Title: "Status",
+				Value: "All systems operational",
+				Short: true,
+			},
+			{
+				Title: "Total Test Cases",
+				Value: fmt.Sprintf("%d", totalTestCases),
+				Short: true,
+			},
+			{
+				Title: "Success Rate",
+				Value: "100.00%",
+				Short: true,
+			},
+			{
+				Title: "Failures",
+				Value: "0",
+				Short: true,
+			},
+		}
+
+		summaryAttachment := Attachment{
+			Color:  "good",
+			Title:  "📊 Monitoring Summary",
+			Fields: summaryFields,
+		}
+
+		return &Message{
+			Text:        title,
+			Attachments: []Attachment{summaryAttachment},
+		}
+	}
+
+	// Handle failure messages (existing logic)
 	title := fmt.Sprintf("🚨 Scale Helper Monitor Alert - %d Failures - %s",
 		failureCount, localTime.Format(time.RFC1123))
 
