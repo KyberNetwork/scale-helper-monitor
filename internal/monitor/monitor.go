@@ -260,7 +260,7 @@ func (m *Monitor) MonitorChain(ctx context.Context, testCase TestCase) (*Result,
 	}
 	newAmount := originalAmount
 	scaleDown := rand.Intn(1000000)%2 == 0
-	percentage := rand.Intn(50)
+	percentage := rand.Intn(20)
 	if scaleDown {
 		newAmount = new(big.Int).Mul(originalAmount, big.NewInt(int64(100-percentage)))
 		newAmount = new(big.Int).Div(newAmount, big.NewInt(100))
