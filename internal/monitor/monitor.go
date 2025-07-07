@@ -552,14 +552,12 @@ func (m *Monitor) RunMonitoring(ctx context.Context) error {
 		case <-ticker.C:
 			var failures []slack.MonitoringResult
 
-			// Monitor each test case
 			for i, testCase := range m.testCases {
 				result, err := m.MonitorChain(ctx, testCase)
 				if err != nil {
 					// Only collect failures for CallGetScaledInputDataError (scale helper or simulation failures)
 					var scaleHelperErr *CallGetScaledInputDataError
 					if errors.As(err, &scaleHelperErr) && result != nil {
-						// Add to failures collection instead of sending individual alert
 						failures = append(failures, result)
 						m.logger.WithError(err).Error("Monitoring check failed")
 					} else {
@@ -586,7 +584,6 @@ func (m *Monitor) RunMonitoring(ctx context.Context) error {
 					"Total test cases": len(m.testCases),
 					"Run on chains":    len(m.chains),
 					"Failures":         len(failures),
-					"Success Rate":     fmt.Sprintf("%.2f%%", float64(len(m.testCases)-len(failures))/float64(len(m.testCases))*100),
 				}).Info("Monitoring check completed")
 			} else {
 				m.logger.Info("All test cases passed successfully on all chains")

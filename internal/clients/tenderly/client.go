@@ -17,14 +17,14 @@ const (
 )
 
 // NewClient creates a new Tenderly client
-func NewClient(accessKey, username, project string) *Client {
+func NewClient(accessKey, username, project string, timeout time.Duration) *Client {
 	return &Client{
 		accessKey: accessKey,
 		username:  username,
 		project:   project,
 		baseURL:   "https://api.tenderly.co/api/v1",
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: timeout,
 		},
 	}
 }

@@ -50,8 +50,8 @@ func (c *Config) GetKyberSwapClient(timeout time.Duration, logger *logrus.Logger
 }
 
 // GetTenderlyClient creates a Tenderly client from the configuration
-func (c *Config) GetTenderlyClient() *tenderly.Client {
-	return tenderly.NewClient(c.Tenderly.AccessKey, c.Tenderly.Username, c.Tenderly.Project)
+func (c *Config) GetTenderlyClient(timeout time.Duration) *tenderly.Client {
+	return tenderly.NewClient(c.Tenderly.AccessKey, c.Tenderly.Username, c.Tenderly.Project, timeout)
 }
 
 // Load loads configuration from file and environment variables

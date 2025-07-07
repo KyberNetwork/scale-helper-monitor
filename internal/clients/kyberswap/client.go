@@ -40,10 +40,8 @@ func NewClient(config Config, timeout time.Duration, logger *logrus.Logger) *Cli
 
 // GetRoute fetches a route from KyberSwap API
 func (c *Client) GetRoute(chainName string, tokenIn, tokenOut, amount string) (*KyberSwapRouteEncodedData, *KyberSwapRoute, error) {
-	// Build the URL
 	routeURL := fmt.Sprintf("%s/%s/api/v1/routes", c.baseURL, chainName)
 
-	// Create query parameters
 	params := url.Values{}
 	params.Add("tokenIn", tokenIn)
 	params.Add("tokenOut", tokenOut)
@@ -74,7 +72,7 @@ func (c *Client) GetRoute(chainName string, tokenIn, tokenOut, amount string) (*
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("Get Route failed")
+		return nil, nil, fmt.Errorf("fetch route failed")
 	}
 
 	// Parse response
@@ -137,7 +135,7 @@ func (c *Client) GetRoute(chainName string, tokenIn, tokenOut, amount string) (*
 			"url":         routeBuildURL,
 		}).Warn("KyberSwap API returned non-200 status")
 
-		// Return the route data even if encoded data fails, to prevent nil pointer panic
+		// Return the route data even if encoded data fails
 		route := apiResponse.Data.RouteSummary
 		route.RouterAddress = apiResponse.Data.RouterAddress
 

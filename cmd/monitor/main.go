@@ -57,7 +57,7 @@ func main() {
 	// Create clients
 	kyberClient := cfg.GetKyberSwapClient(timeout, logger)
 	slackClient := cfg.GetSlackClient(timeout, logger)
-	tenderlyClient := cfg.GetTenderlyClient()
+	tenderlyClient := cfg.GetTenderlyClient(timeout)
 
 	// Create monitor
 	monitorService, err := monitor.NewMonitor(
