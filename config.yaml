@@ -41,6 +41,26 @@ test_cases:
     - token_in: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"  # USDC
       token_out: "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42" # EURC
       amount: "1000"
+    
+    - token_in: "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b"  # VIRTUAL
+      token_out: "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42" # EURC
+      amount: "1000"
+    
+    - token_in: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf"  # cbBTC
+      token_out: "0xecAc9C5F704e954931349Da37F60E39f515c11c1" # lBTC
+      amount: "0.5"
+
+    - token_in: "0xecAc9C5F704e954931349Da37F60E39f515c11c1" # lBTC
+      token_out: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf" # cbBTC
+      amount: "0.5"
+
+    - token_in: "0x35E5dB674D8e93a03d814FA0ADa70731efe8a4b9"  # USR
+      token_out: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" # USDC
+      amount: "1000"
+
+    - token_in: "0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee"  # GHO
+      token_out: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" # USDC
+      amount: "1000"    
 
   berachain:
     - token_in: "0x779ded0c9e1022225f8e0630b35a9b54be713736"  # WETH
@@ -67,6 +87,18 @@ test_cases:
     - token_in: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"  # USDC
       token_out: "0x55d398326f99059ff775485246999027b3197955" # USDT
       amount: "1000"
+    
+    - token_in: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c"  # BTCB
+      token_out: "0x4aae823a6a0b376De6A78e74eCC5b079d38cBCf7" # solvBTC
+      amount: "0.5"
+    
+    - token_in: "0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2"  # sUSDe
+      token_out: "0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d" # USD1
+      amount: "1000"
+
+    - token_in: "0x5A110fC00474038f6c02E89C707D638602EA44B5"  # USDF
+      token_out: "0x55d398326f99059ff775485246999027b3197955" # USDT
+      amount: "1000"
 
   ethereum:
     - token_in: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
@@ -88,6 +120,42 @@ test_cases:
     - token_in: "0x6b175474e89094c44da98b954eedeac495271d0f"  # DAI
       token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
       amount: "1000"
+
+    - token_in: "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3"  # USDe
+      token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
+      amount: "1000"
+
+    - token_in: "0xaD55aebc9b8c03FC43cd9f62260391c13c23e7c0"  # cUSDO
+      token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
+      amount: "1000"
+
+    - token_in: "0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F"  # eUSDe
+      token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
+      amount: "1000"
+
+    - token_in: "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497"  # sUSDe
+      token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
+      amount: "1000"  
+
+    - token_in: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # USDC
+      token_out: "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497" # eUSDe
+      amount: "1000" 
+
+    - token_in: "0xdac17f958d2ee523a2206206994597c13d831ec7"  # USDT
+      token_out: "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497" # sUSDe
+      amount: "1000" 
+    
+    - token_in: "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD"  # RLUSD
+      token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
+      amount: "1000" 
+
+    - token_in: "0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2"  # USDF
+      token_out: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" # USDC
+      amount: "1000" 
+
+    - token_in: "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD"  # RLUSD
+      token_out: "0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2" # USDF
+      amount: "1000" 
 
   mantle:
     - token_in: "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"  # mUSD
