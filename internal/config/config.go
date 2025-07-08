@@ -93,72 +93,72 @@ func Load() (*Config, error) {
 
 	// Chains config - adding all supported chains from tokens.json
 	config.Chains = []monitor.ChainConfig{
-		{
-			Name:            "ethereum",
-			ChainID:         1,
-			RPCURL:          os.Getenv("ETH_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
-		{
-			Name:            "polygon",
-			ChainID:         137,
-			RPCURL:          os.Getenv("POLYGON_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
-		{
-			Name:            "bsc",
-			ChainID:         56,
-			RPCURL:          os.Getenv("BSC_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
-		{
-			Name:            "arbitrum",
-			ChainID:         42161,
-			RPCURL:          os.Getenv("ARBITRUM_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
-		{
-			Name:            "avalanche",
-			ChainID:         43114,
-			RPCURL:          os.Getenv("AVAX_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
+		// {
+		// 	Name:            "ethereum",
+		// 	ChainID:         1,
+		// 	RPCURL:          os.Getenv("ETH_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
+		// {
+		// 	Name:            "polygon",
+		// 	ChainID:         137,
+		// 	RPCURL:          os.Getenv("POLYGON_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
+		// {
+		// 	Name:            "bsc",
+		// 	ChainID:         56,
+		// 	RPCURL:          os.Getenv("BSC_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
+		// {
+		// 	Name:            "arbitrum",
+		// 	ChainID:         42161,
+		// 	RPCURL:          os.Getenv("ARBITRUM_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
+		// {
+		// 	Name:            "avalanche",
+		// 	ChainID:         43114,
+		// 	RPCURL:          os.Getenv("AVAX_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
 		{
 			Name:            "base",
 			ChainID:         8453,
 			RPCURL:          os.Getenv("BASE_NODE_URL"),
 			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
 		},
-		{
-			Name:            "berachain",
-			ChainID:         80094,
-			RPCURL:          os.Getenv("BERA_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
-		{
-			Name:            "mantle",
-			ChainID:         5000,
-			RPCURL:          os.Getenv("MANTLE_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
-		{
-			Name:            "optimism",
-			ChainID:         10,
-			RPCURL:          os.Getenv("OPTIMISM_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
-		{
-			Name:            "sonic",
-			ChainID:         146,
-			RPCURL:          os.Getenv("SONIC_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
-		{
-			Name:            "unichain",
-			ChainID:         1301,
-			RPCURL:          os.Getenv("UNICHAIN_NODE_URL"),
-			ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
-		},
+		// {
+		// 	Name:            "berachain",
+		// 	ChainID:         80094,
+		// 	RPCURL:          os.Getenv("BERA_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
+		// {
+		// 	Name:            "mantle",
+		// 	ChainID:         5000,
+		// 	RPCURL:          os.Getenv("MANTLE_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
+		// {
+		// 	Name:            "optimism",
+		// 	ChainID:         10,
+		// 	RPCURL:          os.Getenv("OPTIMISM_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
+		// {
+		// 	Name:            "sonic",
+		// 	ChainID:         146,
+		// 	RPCURL:          os.Getenv("SONIC_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
+		// {
+		// 	Name:            "unichain",
+		// 	ChainID:         1301,
+		// 	RPCURL:          os.Getenv("UNICHAIN_NODE_URL"),
+		// 	ContractAddress: os.Getenv("CONTRACT_ADDRESS"),
+		// },
 	}
 
 	// Load tokens from JSON file
