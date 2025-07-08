@@ -33,6 +33,12 @@ test_cases:
     - token_in: "0x4200000000000000000000000000000000000006"  # WETH
       token_out: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" # USDC
       amount: "1"
+      included_sources: ["uniswap-v4-fairflow"]
+    
+    - token_in: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"  # USDC
+      token_out: "0x4200000000000000000000000000000000000006" # WETH
+      amount: "10000"
+      included_sources: ["random"]
       
     - token_in: "0x4200000000000000000000000000000000000006"  # WETH
       token_out: "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42" # EURC
@@ -41,6 +47,7 @@ test_cases:
     - token_in: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"  # USDC
       token_out: "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42" # EURC
       amount: "1000"
+      included_sources: ["random"]
     
     - token_in: "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b"  # VIRTUAL
       token_out: "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42" # EURC
@@ -49,6 +56,7 @@ test_cases:
     - token_in: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf"  # cbBTC
       token_out: "0xecAc9C5F704e954931349Da37F60E39f515c11c1" # lBTC
       amount: "0.5"
+      included_sources: ["uniswap-v4", "uniswap-v4-bunni-v2", "uniswap-v4-euler", "uniswap-v4-fairflow", "uniswap-v4-kem", "uniswapv3"]
 
     - token_in: "0xecAc9C5F704e954931349Da37F60E39f515c11c1" # lBTC
       token_out: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf" # cbBTC

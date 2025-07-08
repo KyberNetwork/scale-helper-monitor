@@ -29,6 +29,7 @@ type Monitor struct {
 	testCases      []TestCase
 	tokens         map[string]map[string]TokenInfo // chain name -> token address -> token info
 	chains         []ChainConfig
+	liquiditySources map[string][]string
 	kyberClient    *kyberswap.Client
 	slackClient    *slack.Client
 	tenderlyClient *tenderly.Client
@@ -42,6 +43,7 @@ func NewMonitor(
 	config *Config,
 	testCases []TestCase,
 	tokens map[string]map[string]TokenInfo,
+	liquiditySources map[string][]string,
 	chains []ChainConfig,
 	kyberClient *kyberswap.Client,
 	slackClient *slack.Client,
@@ -78,6 +80,7 @@ func NewMonitor(
 	return &Monitor{
 		config:         config,
 		chains:         chains,
+		liquiditySources: liquiditySources,
 		kyberClient:    kyberClient,
 		slackClient:    slackClient,
 		tenderlyClient: tenderlyClient,
@@ -163,6 +166,8 @@ func (m *Monitor) MonitorChain(ctx context.Context, testCase TestCase) (*Result,
 		testCase.TokenIn,
 		testCase.TokenOut,
 		testCase.Amount,
+		m.liquiditySources[chainConfig.Name],
+		testCase.IncludedSources,
 	)
 
 	if err != nil {
@@ -418,8 +423,8 @@ func (m *Monitor) callGetScaledInputData(ctx context.Context, client *ethclient.
 	// If chain not found, log error with more details
 	if contractAddress == "" {
 		m.logger.WithFields(logrus.Fields{
-			"chainName":       chainName,
-			"chainID":         chainID.String(),
+			"chainName": chainName,
+			"chainID":   chainID.String(),
 		}).Error("Chain not found")
 		return nil, fmt.Errorf("chain not found")
 	}

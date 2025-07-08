@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ type Config struct {
 	Chains     []monitor.ChainConfig                   `mapstructure:"chains"`
 	TestCases  []monitor.TestCase                      `mapstructure:"test_cases"`
 	Tokens     map[string]map[string]monitor.TokenInfo `mapstructure:"tokens"` // chain name -> token address -> token info
+	Sources    map[string][]string                     `mapstructure:"liquidity_sources"` // chain name -> available sources
 }
 
 // SlackConfig represents Slack configuration
@@ -37,6 +39,25 @@ type TenderlyConfig struct {
 	AccessKey string `mapstructure:"access_key"`
 	Username  string `mapstructure:"username"`
 	Project   string `mapstructure:"project"`
+}
+
+// KyberSwapDexResponse represents the API response structure
+type KyberSwapDexResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		Dexes []struct {
+			ID       int    `json:"id"`
+			DexID    string `json:"dexId"`
+			IsEnabled bool  `json:"isEnabled"`
+			Name     string `json:"name"`
+			LogoURL  string `json:"logoURL"`
+			Tags     interface{} `json:"tags"`
+		} `json:"dexes"`
+		Pagination struct {
+			TotalItems int `json:"totalItems"`
+		} `json:"pagination"`
+	} `json:"data"`
 }
 
 // GetSlackClient creates a Slack client from the configuration
@@ -161,6 +182,22 @@ func Load() (*Config, error) {
 		},
 	}
 
+	// Fetch liquidity sources for each chain
+	config.Sources = make(map[string][]string)
+	// Parse timeout for clients
+	timeout, err := time.ParseDuration(config.Monitoring.Timeout)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse timeout duration: %w", err)
+	}
+	for _, chain := range config.Chains {
+		sources, err := fetchLiquiditySources(chain.Name, timeout)
+		if err != nil {
+			config.Sources[chain.Name] = []string{} // Set empty slice on error
+		} else {
+			config.Sources[chain.Name] = sources
+		}
+	}
+
 	// Load tokens from JSON file
 	tokens, err := loadTokens()
 	if err != nil {
@@ -213,4 +250,37 @@ func loadTestCases() ([]monitor.TestCase, error) {
 	}
 
 	return testCases, nil
+}
+
+// fetchLiquiditySources fetches available liquidity sources for a given chain
+func fetchLiquiditySources(chainName string, timeout time.Duration) ([]string, error) {
+	url := fmt.Sprintf("https://ks-setting.kyberswap.com/api/v1/dexes?chain=%s&isEnabled=true&pageSize=100", chainName)
+	
+	client := &http.Client{Timeout: timeout}
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch liquidity sources for chain %s: %w", chainName, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed for chain %s with status: %s", chainName, resp.Status)
+	}
+
+	var response KyberSwapDexResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response for chain %s: %w", chainName, err)
+	}
+
+	if response.Code != 0 {
+		return nil, fmt.Errorf("API returned error for chain %s: %s", chainName, response.Message)
+	}
+
+	// Extract dexId values
+	var sources []string
+	for _, dex := range response.Data.Dexes {
+		sources = append(sources, dex.DexID)
+	}
+
+	return sources, nil
 }

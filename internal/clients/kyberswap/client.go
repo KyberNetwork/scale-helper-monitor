@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -39,13 +40,43 @@ func NewClient(config Config, timeout time.Duration, logger *logrus.Logger) *Cli
 }
 
 // GetRoute fetches a route from KyberSwap API
-func (c *Client) GetRoute(chainName string, tokenIn, tokenOut, amount string) (*KyberSwapRouteEncodedData, *KyberSwapRoute, error) {
+func (c *Client) GetRoute(chainName string, tokenIn, tokenOut, amount string, availableSources []string, includedSources []string) (*KyberSwapRouteEncodedData, *KyberSwapRoute, error) {
 	routeURL := fmt.Sprintf("%s/%s/api/v1/routes", c.baseURL, chainName)
 
 	params := url.Values{}
 	params.Add("tokenIn", tokenIn)
 	params.Add("tokenOut", tokenOut)
 	params.Add("amountIn", amount)
+	if len(includedSources) > 0 {
+		// Check if we need to randomly pick sources
+		sourcesString := strings.Join(includedSources, ",")
+		if strings.Contains(sourcesString, "random") {
+			// randomly pick sources from availableSources
+			sourcesCount := rand.Intn(len(availableSources)) + 1
+			selectedSources := make([]string, 0, sourcesCount)
+			for _ = range sourcesCount {
+				selectedSources = append(selectedSources, availableSources[rand.Intn(len(availableSources))])
+			}
+			sourcesString = strings.Join(selectedSources, ",")
+		} else {
+			// Pick only the sources that are in the available sources list
+			availableSourcesString := strings.Join(availableSources, ",")
+			validSources := []string{}
+			for _, source := range includedSources {
+				if strings.Contains(availableSourcesString, source) {
+					validSources = append(validSources, source)
+				}
+			}
+			sourcesString = strings.Join(validSources, ",")	
+		}
+
+			
+		if len(sourcesString) > 0 {
+			params.Add("includedSources", sourcesString)
+		} else {
+			return nil, nil, fmt.Errorf("no valid sources found")
+		}
+	}
 
 	fullURL := fmt.Sprintf("%s?%s", routeURL, params.Encode())
 
@@ -72,7 +103,7 @@ func (c *Client) GetRoute(chainName string, tokenIn, tokenOut, amount string) (*
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("fetch route failed")
+		return nil, nil, fmt.Errorf("fetch route failed: TokenIn: %s TokenOut: %s Amount: %s Chain: %s Response: %s", tokenIn, tokenOut, amount, chainName, string(body))
 	}
 
 	// Parse response
@@ -129,17 +160,11 @@ func (c *Client) GetRoute(chainName string, tokenIn, tokenOut, amount string) (*
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		c.logger.WithFields(logrus.Fields{
-			"status_code": resp.StatusCode,
-			"response":    string(body),
-			"url":         routeBuildURL,
-		}).Warn("KyberSwap API returned non-200 status")
-
 		// Return the route data even if encoded data fails
 		route := apiResponse.Data.RouteSummary
 		route.RouterAddress = apiResponse.Data.RouterAddress
 
-		return nil, &route, fmt.Errorf("KyberSwap API returned non-200 status")
+		return nil, &route, fmt.Errorf("failed to build route: TokenIn: %s TokenOut: %s Amount: %s Chain: %s Response: %s", tokenIn, tokenOut, amount, chainName, string(body))
 	}
 
 	var encodedDataResponse KyberSwapEncodedData

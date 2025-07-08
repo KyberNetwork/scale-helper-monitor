@@ -79,7 +79,7 @@ func (c *Client) createAlertMessage(failures []MonitoringResult, totalTestCases 
 	// Convert to GMT+7 timezone
 	loc, _ := time.LoadLocation("Asia/Bangkok") // GMT+7
 	localTime := time.Now().In(loc)
-	
+
 	// Handle positive message when no failures
 	if failureCount == 0 {
 		title := fmt.Sprintf("✅ Scale Helper Monitor - All Tests Passed - %s",

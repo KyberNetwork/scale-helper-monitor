@@ -26,10 +26,11 @@ type TokenInfo struct {
 }
 
 type TestCase struct {
-	ChainName string `mapstructure:"chain_name"`
-	TokenIn   string `mapstructure:"token_in"`
-	TokenOut  string `mapstructure:"token_out"`
-	Amount    string `mapstructure:"amount"`
+	ChainName       string   `mapstructure:"chain_name"`
+	TokenIn         string   `mapstructure:"token_in"`
+	TokenOut        string   `mapstructure:"token_out"`
+	Amount          string   `mapstructure:"amount"`
+	IncludedSources []string `mapstructure:"included_sources"`
 }
 
 // Result represents the result of a monitoring check
