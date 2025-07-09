@@ -71,13 +71,13 @@ test_cases:
       amount: "1000"    
 
   berachain:
-    - token_in: "0x779ded0c9e1022225f8e0630b35a9b54be713736"  # WETH
+    - token_in: "0x779ded0c9e1022225f8e0630b35a9b54be713736"  # USD₮0
       token_out: "0x549943e04f40284185054145c6e4e9568c1d3241" # USDC
-      amount: "1"
+      amount: "1000"
 
-    - token_in: "0x779ded0c9e1022225f8e0630b35a9b54be713736"  # WETH
+    - token_in: "0x779ded0c9e1022225f8e0630b35a9b54be713736"  # USD₮0
       token_out: "0x0555e30da8f98308edb960aa94c0db47230d2b9c" # WBTC
-      amount: "1"
+      amount: "1000"
 
   bsc:
     - token_in: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"  # WBNB
