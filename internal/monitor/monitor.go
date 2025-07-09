@@ -130,6 +130,7 @@ func createContractABI() (abi.ABI, error) {
 // MonitorChain monitors a specific chain with a test token pair
 func (m *Monitor) MonitorChain(ctx context.Context, testCase TestCase) (*Result, error) {
 	amount, err := strconv.ParseFloat(testCase.Amount, 64)
+
 	if err != nil {
 		return nil, fmt.Errorf("invalid amount format: %s", testCase.Amount)
 	}
@@ -138,9 +139,17 @@ func (m *Monitor) MonitorChain(ctx context.Context, testCase TestCase) (*Result,
 	if !ok {
 		return nil, fmt.Errorf("invalid decimals format: %s", m.tokens[testCase.ChainName][testCase.TokenIn].Decimals)
 	}
-	amountInt := int64(amount * math.Pow10(int(decimals.Int64())))
 
-	testCase.Amount = big.NewInt(amountInt).String()
+	// Check if amount is a integer
+	if amount == float64(int64(amount)) {
+		// For whole numbers, create string with zeros appended
+		zeros := strings.Repeat("0", int(decimals.Int64()))
+		testCase.Amount = testCase.Amount + zeros
+	} else {
+		amountInt := int64(amount * math.Pow10(int(decimals.Int64())))
+		testCase.Amount = big.NewInt(amountInt).String()
+	}
+
 	// Find the chain config
 	var chainConfig *ChainConfig
 	for _, chain := range m.chains {
