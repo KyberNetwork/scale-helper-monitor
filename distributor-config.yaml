@@ -1,0 +1,54 @@
+# Distributor Monitor Configuration
+
+# Network configurations - will be loaded from environment variables for RPC URLs
+# 
+# Each network requires:
+# 1. RPC URL: {NETWORK}_NODE_URL (e.g., ETH_NODE_URL, POLYGON_NODE_URL)
+# 2. Contract Address: Must be configured in config/distributor/Contracts.json
+#
+# Contract addresses are exclusively managed in config/distributor/Contracts.json
+# Networks with contract address 0x0000000000000000000000000000000000000000 will be skipped
+# Only networks with both RPC URL and valid contract address will be monitored
+#
+# Supported networks and their RPC environment variables:
+# - Ethereum: ETH_NODE_URL
+# - Polygon: POLYGON_NODE_URL
+# - BSC: BSC_NODE_URL
+# - Arbitrum: ARBITRUM_NODE_URL
+# - Avalanche: AVAX_NODE_URL
+# - Base: BASE_NODE_URL
+# - Berachain: BERA_NODE_URL
+# - Mantle: MANTLE_NODE_URL
+# - Optimism: OPTIMISM_NODE_URL
+# - Sonic: SONIC_NODE_URL
+# - Unichain: UNICHAIN_NODE_URL
+# - Ronin: RONIN_NODE_URL
+# - Linea: LINEA_NODE_URL
+# - Hyper EVM: HYPEREVM_NODE_URL
+#
+# Batch sizes are configured in config/distributor/Chains.json with intelligent
+# defaults based on each network's block production speed:
+# - Fast networks (1-3s blocks): 300 blocks per batch
+# - Medium networks (3-12s blocks): 150-200 blocks per batch  
+# - Slow networks (12s+ blocks): 50-75 blocks per batch
+# The global batch_size setting below is only used as a fallback
+networks: []
+
+# Slack configuration for distributor alerts
+slack:
+  token: ""  # Set via SLACK_TOKEN environment variable
+  channel: ""  # Set via SLACK_CHANNEL environment variable
+
+# Monitoring settings
+monitoring:
+  poll_interval: 30  # seconds between polls
+  batch_size: 100    # global fallback batch size (individual networks use Chains.json defaults)
+  state_file: "config/distributor/State.json"  # path to state persistence file
+  # State file stores the last processed block for each network to resume monitoring
+  # after restarts without missing events or re-processing old blocks
+  # Individual network batch sizes are defined in config/distributor/Chains.json
+
+# Logging configuration
+logging:
+  level: "info"      # debug, info, warn, error
+  format: "text"     # text or json 

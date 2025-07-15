@@ -25,7 +25,7 @@ type Config struct {
 	KyberSwap  kyberswap.Config                        `mapstructure:"kyberswap"`
 	Chains     []monitor.ChainConfig                   `mapstructure:"chains"`
 	TestCases  []monitor.TestCase                      `mapstructure:"test_cases"`
-	Tokens     map[string]map[string]monitor.TokenInfo `mapstructure:"tokens"` // chain name -> token address -> token info
+	Tokens     map[string]map[string]monitor.TokenInfo `mapstructure:"tokens"`            // chain name -> token address -> token info
 	Sources    map[string][]string                     `mapstructure:"liquidity_sources"` // chain name -> available sources
 }
 
@@ -47,12 +47,12 @@ type KyberSwapDexResponse struct {
 	Message string `json:"message"`
 	Data    struct {
 		Dexes []struct {
-			ID       int    `json:"id"`
-			DexID    string `json:"dexId"`
-			IsEnabled bool  `json:"isEnabled"`
-			Name     string `json:"name"`
-			LogoURL  string `json:"logoURL"`
-			Tags     interface{} `json:"tags"`
+			ID        int         `json:"id"`
+			DexID     string      `json:"dexId"`
+			IsEnabled bool        `json:"isEnabled"`
+			Name      string      `json:"name"`
+			LogoURL   string      `json:"logoURL"`
+			Tags      interface{} `json:"tags"`
 		} `json:"dexes"`
 		Pagination struct {
 			TotalItems int `json:"totalItems"`
@@ -255,7 +255,7 @@ func loadTestCases() ([]monitor.TestCase, error) {
 // fetchLiquiditySources fetches available liquidity sources for a given chain
 func fetchLiquiditySources(chainName string, timeout time.Duration) ([]string, error) {
 	url := fmt.Sprintf("https://ks-setting.kyberswap.com/api/v1/dexes?chain=%s&isEnabled=true&pageSize=100", chainName)
-	
+
 	client := &http.Client{Timeout: timeout}
 	resp, err := client.Get(url)
 	if err != nil {

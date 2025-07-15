@@ -1,0 +1,39 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+scripts/README.md
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+distributor-monitor
+monitor
+distributor
+check-distributor-config
+
+# Logs
+*.log
+
+# Environment files (should be set via docker-compose or runtime)
+.env
+.env.local
+
+# Test files
+*_test.go
+
+# Scripts (not needed in production)
+scripts/
+
+# State files (will be created at runtime)
+config/distributor/State.json 

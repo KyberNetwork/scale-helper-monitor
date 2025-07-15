@@ -64,7 +64,7 @@ func main() {
 		&cfg.Monitoring,
 		cfg.TestCases,
 		cfg.Tokens,
-		cfg.Sources,	
+		cfg.Sources,
 		cfg.Chains,
 		kyberClient,
 		slackClient,

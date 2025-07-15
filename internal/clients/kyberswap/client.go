@@ -67,10 +67,9 @@ func (c *Client) GetRoute(chainName string, tokenIn, tokenOut, amount string, av
 					validSources = append(validSources, source)
 				}
 			}
-			sourcesString = strings.Join(validSources, ",")	
+			sourcesString = strings.Join(validSources, ",")
 		}
 
-			
 		if len(sourcesString) > 0 {
 			params.Add("includedSources", sourcesString)
 		} else {
