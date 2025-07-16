@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  distributor-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: distributor-monitor
+    restart: unless-stopped
+    
+    # Environment variables for blockchain RPC URLs
+    environment:
+      # Slack Configuration
+      - SLACK_TOKEN=${SLACK_TOKEN}
+      - SLACK_CHANNEL=${SLACK_CHANNEL}
+      
+      # Blockchain RPC URLs (add your API keys)
+      - ETH_NODE_URL=${ETH_NODE_URL}
+      - POLYGON_NODE_URL=${POLYGON_NODE_URL}
+      - BSC_NODE_URL=${BSC_NODE_URL}
+      - ARBITRUM_NODE_URL=${ARBITRUM_NODE_URL}
+      - AVALANCHE_NODE_URL=${AVALANCHE_NODE_URL}
+      - BASE_NODE_URL=${BASE_NODE_URL}
+      - BERACHAIN_NODE_URL=${BERACHAIN_NODE_URL}
+      - MANTLE_NODE_URL=${MANTLE_NODE_URL}
+      - OPTIMISM_NODE_URL=${OPTIMISM_NODE_URL}
+      - SONIC_NODE_URL=${SONIC_NODE_URL}
+      - UNICHAIN_NODE_URL=${UNICHAIN_NODE_URL}
+      - RONIN_NODE_URL=${RONIN_NODE_URL}
+      - LINEA_NODE_URL=${LINEA_NODE_URL}
+      - HYPEREVM_NODE_URL=${HYPEREVM_NODE_URL}
+    
+    # Mount volumes for configuration and state persistence
+    volumes:
+      - ./config:/app/config
+      - distributor-state:/app/config/distributor
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "ps", "aux", "|", "grep", "[d]istributor-monitor"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  distributor-state:
+    driver: local 

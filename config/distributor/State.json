@@ -1,0 +1,14 @@
+{
+  "arbitrum": {
+    "network_name": "arbitrum",
+    "chain_id": 42161,
+    "last_processed_block": 357913270,
+    "last_updated": "2025-07-15 17:21:49 UTC"
+  },
+  "base": {
+    "network_name": "base",
+    "chain_id": 8453,
+    "last_processed_block": 32892768,
+    "last_updated": "2025-07-15 17:21:25 UTC"
+  }
+}

@@ -1,77 +1,217 @@
 # Scale Helper Monitor
 
-A monitoring service that checks the `getScaledInputData` function across multiple blockchains and sends batch Slack alerts when the function returns false.
+A comprehensive blockchain monitoring service with two specialized applications for tracking smart contracts and events across multiple networks.
 
-## Overview
+## Applications
 
-This service:
+This repository contains two monitoring applications:
 
-- Fetches routing data from KyberSwap API for various token pairs
-- Calls the `getScaledInputData` function on smart contracts deployed across multiple chains
-- Monitors the function's return value and sends Slack alerts when it returns `false`
-- Provides detailed logging and error reporting
+### 1. Scale Helper Monitor (`cmd/monitor/`)
+- Monitors the `getScaledInputData` function across multiple blockchains
+- Sends Slack alerts when the function returns `false`
+- Uses `config.yaml` for configuration
+- Uses `CONTRACT_ADDRESS` environment variable
 
-## Features
+### 2. Distributor Monitor (`cmd/distributor/`) ⭐ **Featured**
+- Monitors `RootSubmitted` events on distributor contracts across 14+ networks
+- Tracks campaign submissions with real-time Slack notifications
+- **JSON-based configuration** for networks and contracts
+- **State persistence** to resume monitoring after restarts
+- **Docker support** for easy deployment
 
-- **Multi-chain support**: Monitor contracts on Ethereum, Polygon, BSC, Arbitrum, and more
-- **KyberSwap integration**: Automatically fetches encoded swap data from KyberSwap API
-- **Slack alerts**: Detailed alerts with token information, chain details, and error context
-- **Configurable monitoring**: Adjust intervals, timeouts, and token pairs
+## 🚀 Quick Start (Distributor Monitor)
 
-## Prerequisites
+### Local Development
+```bash
+# 1. Configure environment
+cp env.example .env
+# Edit .env with your RPC URLs and Slack credentials
 
-- Go 1.19+
+# 2. Configure contracts
+# Update config/distributor/Contracts.json with actual contract addresses
+
+# 3. Run
+go run cmd/distributor/main.go
+```
+
+### Docker Deployment (Recommended)
+```bash
+# 1. Setup environment
+cp docker.env.example .env
+# Edit .env with your credentials
+
+# 2. Deploy
+docker-compose up -d
+
+# 3. View logs
+docker-compose logs -f distributor-monitor
+```
+
+## 📁 Configuration Structure
+
+### Distributor Monitor
+- **`config/distributor/Chains.json`** - Network metadata (14 networks, emojis, batch sizes)
+- **`config/distributor/Contracts.json`** - Distributor contract addresses per network
+- **`config/distributor/State.json`** - Runtime state persistence (auto-managed)
+- **`distributor-config.yaml`** - Basic application settings
+
+### Scale Helper Monitor
+- **`config.yaml`** - Traditional YAML configuration
+- Environment variables for contract addresses
+
+## 🌐 Supported Networks (Distributor Monitor)
+
+| Network | Chain ID | Emoji | Status |
+|---------|----------|-------|--------|
+| Ethereum | 1 | 🔷 | Active |
+| Polygon | 137 | 🟣 | Active |
+| BSC | 56 | 🟡 | Active |
+| Arbitrum | 42161 | 🔵 | Active |
+| Avalanche | 43114 | 🔺 | Active |
+| Base | 8453 | 🟦 | Active |
+| Berachain | 80085 | 🐻 | Testnet |
+| Mantle | 5000 | 🧊 | Active |
+| Optimism | 10 | 🔴 | Active |
+| Sonic | 146 | ⚡ | Active |
+| Unichain | 130 | 🦄 | Active |
+| Ronin | 2020 | ⚔️ | Active |
+| Linea | 59144 | 📐 | Active |
+| Hyper EVM | 999 | ⚡ | Active |
+
+## Environment Variables
+
+### Distributor Monitor
+**Deployment-specific only** (sensitive data):
+- **`SLACK_TOKEN`** - Slack bot token
+- **`SLACK_CHANNEL`** - Slack channel for alerts  
+- **`{NETWORK}_NODE_URL`** - RPC endpoints (e.g., `ETH_NODE_URL`, `ARBITRUM_NODE_URL`)
+
+**Configuration managed in JSON files** (no env vars needed):
+- Contract addresses → `config/distributor/Contracts.json`
+- Network metadata → `config/distributor/Chains.json`
+- Batch sizes → `config/distributor/Chains.json`
+
+### Scale Helper Monitor
+- **`CONTRACT_ADDRESS`** - Smart contract address
+- **`SLACK_WEBHOOK_URL`** - Slack webhook for alerts
+
+## 🔧 Features
+
+### Distributor Monitor
+- **🌍 Multi-network**: 14+ blockchain networks supported
+- **📦 Docker Ready**: Production-ready containerization
+- **💾 State Persistence**: Resume monitoring after restarts
+- **🎯 Smart Filtering**: Skip networks with invalid contracts
+- **📊 Batch Processing**: Configurable batch sizes per network
+- **🚨 Real-time Alerts**: Instant Slack notifications with emojis
+- **🛡️ Robust Error Handling**: Comprehensive retry logic and timeouts
+
+### Scale Helper Monitor  
+- **Multi-chain support**: Monitor contracts on multiple networks
+- **KyberSwap integration**: Fetches encoded swap data
+- **Detailed alerts**: Comprehensive failure reporting
+- **Configurable monitoring**: Adjustable intervals and parameters
+
+## 📊 Monitoring Features (Distributor Monitor)
+
+### Event Tracking
+- **`RootSubmitted` Events**: Tracks new campaign submissions
+- **Real-time Processing**: Immediate event detection and notification
+- **Batch Optimization**: Network-specific batch sizes for efficiency
+
+### Smart State Management
+- **Automatic Persistence**: Saves last processed block per network
+- **Crash Recovery**: Resumes from last known state after restarts
+- **No Duplicate Processing**: Prevents re-processing old events
+
+### Intelligent Network Handling
+- **Dynamic Configuration**: Load networks from JSON config
+- **Validation**: Skip invalid networks automatically
+- **Timeout Management**: 30s connection, 15s block queries, 30s RPC operations
+
+## 🐳 Docker Deployment
+
+### Quick Setup
+```bash
+# Copy environment template
+cp docker.env.example .env
+
+# Edit .env with your:
+# - Slack token and channel
+# - RPC URLs for networks you want to monitor
+
+# Start monitoring
+docker-compose up -d
+```
+
+### Production Features
+- **Security**: Non-root user, minimal Alpine image
+- **Monitoring**: Health checks and structured logging  
+- **Persistence**: State data survives container restarts
+- **Resource Management**: Memory limits and log rotation
+
+See [`Docker.md`](Docker.md) for complete deployment guide.
+
+## 🛠️ Development
+
+### Prerequisites
+- Go 1.24+
 - Access to blockchain RPC endpoints (Alchemy, Infura, etc.)
-- Slack webhook URL for alerts
-- Contract addresses for each chain you want to monitor
+- Slack bot token and channel
 
-## Installation
-
-1. Clone the repository:
-
+### Building
 ```bash
-git clone <repository-url>
-cd scale-helper-monitor
+# Install dependencies
+go mod download
+
+# Build distributor monitor
+go build -o distributor-monitor ./cmd/distributor
+
+# Build scale helper monitor  
+go build -o scale-helper-monitor ./cmd/monitor
 ```
 
-2. Initialize Go modules:
-
+### Debugging Tools
 ```bash
-go mod init scale-helper-monitor
-go mod tidy
+# Check distributor configuration
+go run scripts/check-distributor-config.go
+
+# Test network connections
+go run scripts/test-network-connection.go
+
+# Clear saved state
+go run scripts/clear-distributor-state.go
 ```
 
-## Configuration
+## 📈 Slack Alerts
 
-### Environment Variables
+### Distributor Monitor Alerts
+Real-time notifications for new campaign submissions:
+```
+🎯 New Campaign Submitted on 🔵 Arbitrum
 
-Checkout `env.example`
-
-### Configuration File
-
-The service reads from `config.yaml`. You can customize:
-
-- **Monitoring interval**: How often to check contracts
-- **API timeout**: Timeout for API and RPC calls
-- **Test cases**: Test case to monitor on each chain
-
-## Usage
-
-### Running the Service
-
-```bash
-# Run with default configuration
-go run .
-
-# Build and run binary
-go build -o scale-helper-monitor
-./scale-helper-monitor
+Campaign ID: 42
+Transaction: 0x1234...abcd
+Block: 158234567
+Gas Used: 125,000
 ```
 
-## Smart Contract Interface
+### Scale Helper Monitor Alerts
+Batch alerts when `getScaledInputData` returns false:
+- **Summary Statistics**: Success rates and affected chains
+- **Detailed Failures**: Token pairs, amounts, error details
+- **Tenderly Links**: Simulation results for debugging
 
-The service expects contracts to implement:
+## 🔗 Smart Contract Interfaces
 
+### Distributor Monitor
+Monitors contracts emitting:
+```solidity
+event RootSubmitted(uint256 indexed campaignId, bytes32 indexed root);
+```
+
+### Scale Helper Monitor
+Expects contracts implementing:
 ```solidity
 function getScaledInputData(
     bytes calldata inputData,
@@ -79,79 +219,20 @@ function getScaledInputData(
 ) external view returns (bool isSuccess, bytes memory data);
 ```
 
-## API Integration
+## 📖 Documentation
 
-The service integrates with [KyberSwap Aggregator API](https://docs.kyberswap.com/kyberswap-solutions/kyberswap-aggregator/aggregator-api-specification/evm-swaps) to:
+- **[Docker Deployment Guide](Docker.md)** - Complete Docker setup and troubleshooting
+- **[Environment Examples](env.example)** - Configuration templates
+- **[Script Documentation](scripts/README.md)** - Debugging and utility scripts
 
-1. Fetch encoded swap data for token pairs
-2. Get real-time pricing information
-3. Generate test cases for the monitoring function
+## 🤝 Contributing
 
-## Slack Alerts
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test with both local and Docker setups
+5. Submit a pull request
 
-When `getScaledInputData` returns `false`, the service collects all failures from a monitoring run and sends a single batch alert containing:
+## 📄 License
 
-### Alert Summary
-
-- **Total failures count**
-- **Total test cases executed**
-- **Success rate percentage**
-- **Affected chains list**
-
-### Individual Failure Details
-
-For each failure, the alert includes:
-
-- Chain name and ID
-- Token pair information (symbols and addresses)
-- Original and scaled transaction amounts
-- Input data and returned data from the contract
-- Error details and timestamp
-- Tenderly simulation links (original and scaled swaps)
-
-### Route Sequence Information
-
-Detailed swap route breakdown showing:
-
-- **Number of sequence steps**
-- **Pool information for each step**:
-  - Pool type (e.g., UniswapV2, UniswapV3, Curve)
-  - Exchange name
-  - Pool-specific details
-
-### Example Alert Structure
-
-```
-🚨 Scale Helper Monitor Alert - 2 Failures
-
-📊 Alert Summary
-Total Failures: 2
-Total Test Cases: 10
-Success Rate: 80.00%
-Affected Chains: ethereum, arbitrum
-
-❌ Failure 1: ethereum
-Chain: ethereum
-Token Addresses: In: 0x..., Out: 0x...
-Sequence Details:
---- Step 1 ---
-Pool 1:
-  Type: UniswapV3
-  Exchange: Uniswap V3
---- Step 2 ---
-Pool 1:
-  Type: Curve
-  Exchange: Curve Finance
-```
-
-## Monitoring Logic
-
-For each configured token pair, the service:
-
-1. **Fetches route**: Calls KyberSwap API to get encoded swap data with detailed sequence information
-2. **Scales amount**: Creates a new amount (random percentage) to test scaling
-3. **Simulates original**: Uses Tenderly to verify the original swap works
-4. **Calls contract**: Invokes `getScaledInputData` with the encoded data and new amount
-5. **Simulates scaled**: Uses Tenderly to test the scaled swap data
-6. **Sends batch alert**: After all test cases complete, sends a single consolidated alert if there are failures
-7. **Logs activity**: Records all operations with structured logging and success rate tracking
+This project is licensed under the MIT License.

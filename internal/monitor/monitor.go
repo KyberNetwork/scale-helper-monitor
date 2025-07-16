@@ -25,17 +25,17 @@ import (
 
 // Monitor represents the main monitoring service
 type Monitor struct {
-	config         *Config
-	testCases      []TestCase
-	tokens         map[string]map[string]TokenInfo // chain name -> token address -> token info
-	chains         []ChainConfig
+	config           *Config
+	testCases        []TestCase
+	tokens           map[string]map[string]TokenInfo // chain name -> token address -> token info
+	chains           []ChainConfig
 	liquiditySources map[string][]string
-	kyberClient    *kyberswap.Client
-	slackClient    *slack.Client
-	tenderlyClient *tenderly.Client
-	ethClients     map[string]*ethclient.Client
-	contractABI    abi.ABI
-	logger         *logrus.Logger
+	kyberClient      *kyberswap.Client
+	slackClient      *slack.Client
+	tenderlyClient   *tenderly.Client
+	ethClients       map[string]*ethclient.Client
+	contractABI      abi.ABI
+	logger           *logrus.Logger
 }
 
 // NewMonitor creates a new monitoring service
@@ -78,17 +78,17 @@ func NewMonitor(
 	}
 
 	return &Monitor{
-		config:         config,
-		chains:         chains,
+		config:           config,
+		chains:           chains,
 		liquiditySources: liquiditySources,
-		kyberClient:    kyberClient,
-		slackClient:    slackClient,
-		tenderlyClient: tenderlyClient,
-		ethClients:     ethClients,
-		contractABI:    contractABI,
-		logger:         logger,
-		tokens:         tokens,
-		testCases:      testCases,
+		kyberClient:      kyberClient,
+		slackClient:      slackClient,
+		tenderlyClient:   tenderlyClient,
+		ethClients:       ethClients,
+		contractABI:      contractABI,
+		logger:           logger,
+		tokens:           tokens,
+		testCases:        testCases,
 	}, nil
 }
 
