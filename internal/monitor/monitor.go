@@ -630,7 +630,6 @@ func (m *Monitor) allowScalingUp(route [][]kyberswap.KyberSwapSwap, onlyScaleDow
 		exchangeType := strings.ToLower(path[0].Exchange)
 		for _, dex := range onlyScaleDownDexs {
 			if strings.Contains(exchangeType, strings.ToLower(dex)) {
-				fmt.Println("exchangeType:", exchangeType)
 				return false
 			}
 		}
