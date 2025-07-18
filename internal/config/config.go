@@ -19,14 +19,15 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Slack      SlackConfig                             `mapstructure:"slack"`
-	Tenderly   TenderlyConfig                          `mapstructure:"tenderly"`
-	Monitoring monitor.Config                          `mapstructure:"monitoring"`
-	KyberSwap  kyberswap.Config                        `mapstructure:"kyberswap"`
-	Chains     []monitor.ChainConfig                   `mapstructure:"chains"`
-	TestCases  []monitor.TestCase                      `mapstructure:"test_cases"`
-	Tokens     map[string]map[string]monitor.TokenInfo `mapstructure:"tokens"` // chain name -> token address -> token info
-	Sources    map[string][]string                     `mapstructure:"liquidity_sources"` // chain name -> available sources
+	Slack             SlackConfig                             `mapstructure:"slack"`
+	Tenderly          TenderlyConfig                          `mapstructure:"tenderly"`
+	Monitoring        monitor.Config                          `mapstructure:"monitoring"`
+	KyberSwap         kyberswap.Config                        `mapstructure:"kyberswap"`
+	Chains            []monitor.ChainConfig                   `mapstructure:"chains"`
+	TestCases         []monitor.TestCase                      `mapstructure:"test_cases"`
+	Tokens            map[string]map[string]monitor.TokenInfo `mapstructure:"tokens"`            // chain name -> token address -> token info
+	Sources           map[string][]string                     `mapstructure:"liquidity_sources"` // chain name -> available sources
+	OnlyScaleDownDexs []string                                `mapstructure:"only_scale_down_dexs"`
 }
 
 // SlackConfig represents Slack configuration
@@ -47,12 +48,12 @@ type KyberSwapDexResponse struct {
 	Message string `json:"message"`
 	Data    struct {
 		Dexes []struct {
-			ID       int    `json:"id"`
-			DexID    string `json:"dexId"`
-			IsEnabled bool  `json:"isEnabled"`
-			Name     string `json:"name"`
-			LogoURL  string `json:"logoURL"`
-			Tags     interface{} `json:"tags"`
+			ID        int         `json:"id"`
+			DexID     string      `json:"dexId"`
+			IsEnabled bool        `json:"isEnabled"`
+			Name      string      `json:"name"`
+			LogoURL   string      `json:"logoURL"`
+			Tags      interface{} `json:"tags"`
 		} `json:"dexes"`
 		Pagination struct {
 			TotalItems int `json:"totalItems"`
@@ -111,6 +112,7 @@ func Load() (*Config, error) {
 	// KyberSwap config
 	config.KyberSwap.APIBaseURL = viper.GetString("kyberswap.api_base_url")
 	config.KyberSwap.ClientID = viper.GetString("kyberswap.client_id")
+	config.OnlyScaleDownDexs = viper.GetStringSlice("only_scale_down_dexs")
 
 	// Chains config - adding all supported chains from tokens.json
 	config.Chains = []monitor.ChainConfig{
@@ -255,7 +257,7 @@ func loadTestCases() ([]monitor.TestCase, error) {
 // fetchLiquiditySources fetches available liquidity sources for a given chain
 func fetchLiquiditySources(chainName string, timeout time.Duration) ([]string, error) {
 	url := fmt.Sprintf("https://ks-setting.kyberswap.com/api/v1/dexes?chain=%s&isEnabled=true&pageSize=100", chainName)
-	
+
 	client := &http.Client{Timeout: timeout}
 	resp, err := client.Get(url)
 	if err != nil {

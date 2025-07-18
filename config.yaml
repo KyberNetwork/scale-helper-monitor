@@ -6,6 +6,8 @@ kyberswap:
   api_base_url: "https://aggregator-api.kyberswap.com"
   client_id: "scale-helper-test"
 
+only_scale_down_dexs: ["dexalot","native-v1", "native-v2", "bebop"]
+
 test_cases:
   arbitrum:
     - token_in: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"  # WETH
@@ -23,6 +25,7 @@ test_cases:
     - token_in: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"  # USDT
       token_out: "0xaf88d065e77c8cc2239327c5edb3a432268e5831" # USDC
       amount: "1000"
+      included_sources: ["dexalot", "native-v1", "native-v2", "uniswap-v4"]
 
   avalanche:
     - token_in: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"  # USDC

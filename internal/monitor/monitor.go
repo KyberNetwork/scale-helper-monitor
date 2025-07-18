@@ -25,17 +25,18 @@ import (
 
 // Monitor represents the main monitoring service
 type Monitor struct {
-	config         *Config
-	testCases      []TestCase
-	tokens         map[string]map[string]TokenInfo // chain name -> token address -> token info
-	chains         []ChainConfig
-	liquiditySources map[string][]string
-	kyberClient    *kyberswap.Client
-	slackClient    *slack.Client
-	tenderlyClient *tenderly.Client
-	ethClients     map[string]*ethclient.Client
-	contractABI    abi.ABI
-	logger         *logrus.Logger
+	config            *Config
+	testCases         []TestCase
+	tokens            map[string]map[string]TokenInfo // chain name -> token address -> token info
+	onlyScaleDownDexs []string
+	chains            []ChainConfig
+	liquiditySources  map[string][]string
+	kyberClient       *kyberswap.Client
+	slackClient       *slack.Client
+	tenderlyClient    *tenderly.Client
+	ethClients        map[string]*ethclient.Client
+	contractABI       abi.ABI
+	logger            *logrus.Logger
 }
 
 // NewMonitor creates a new monitoring service
@@ -43,6 +44,7 @@ func NewMonitor(
 	config *Config,
 	testCases []TestCase,
 	tokens map[string]map[string]TokenInfo,
+	onlyScaleDownDexs []string,
 	liquiditySources map[string][]string,
 	chains []ChainConfig,
 	kyberClient *kyberswap.Client,
@@ -78,17 +80,18 @@ func NewMonitor(
 	}
 
 	return &Monitor{
-		config:         config,
-		chains:         chains,
-		liquiditySources: liquiditySources,
-		kyberClient:    kyberClient,
-		slackClient:    slackClient,
-		tenderlyClient: tenderlyClient,
-		ethClients:     ethClients,
-		contractABI:    contractABI,
-		logger:         logger,
-		tokens:         tokens,
-		testCases:      testCases,
+		config:            config,
+		chains:            chains,
+		liquiditySources:  liquiditySources,
+		kyberClient:       kyberClient,
+		slackClient:       slackClient,
+		tenderlyClient:    tenderlyClient,
+		ethClients:        ethClients,
+		contractABI:       contractABI,
+		logger:            logger,
+		tokens:            tokens,
+		testCases:         testCases,
+		onlyScaleDownDexs: onlyScaleDownDexs,
 	}, nil
 }
 
@@ -274,8 +277,12 @@ func (m *Monitor) MonitorChain(ctx context.Context, testCase TestCase) (*Result,
 			OriginalTenderlyURL: originalTenderlyURL,
 		}, fmt.Errorf("failed to parse input amount")
 	}
+
 	newAmount := originalAmount
 	scaleDown := rand.Intn(1000000)%2 == 0
+	if !m.allowScalingUp(route.Route, m.onlyScaleDownDexs) {
+		scaleDown = true
+	}
 	percentage := rand.Intn(20)
 	if scaleDown {
 		newAmount = new(big.Int).Mul(originalAmount, big.NewInt(int64(100-percentage)))
@@ -616,4 +623,17 @@ func (m *Monitor) Close() {
 			m.logger.WithField("chain", chainName).Info("Closed RPC connection")
 		}
 	}
+}
+
+func (m *Monitor) allowScalingUp(route [][]kyberswap.KyberSwapSwap, onlyScaleDownDexs []string) bool {
+	for _, path := range route {
+		exchangeType := strings.ToLower(path[0].Exchange)
+		for _, dex := range onlyScaleDownDexs {
+			if strings.Contains(exchangeType, strings.ToLower(dex)) {
+				return false
+			}
+		}
+
+	}
+	return true
 }
