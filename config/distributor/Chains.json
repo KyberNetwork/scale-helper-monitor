@@ -1,0 +1,130 @@
+{
+  "chains": [
+    {
+      "name": "ethereum",
+      "chainId": 1,
+      "emoji": "🔹",
+      "envPrefix": "ETH",
+      "defaultBatchSize": 50,
+      "blockTime": "12s",
+      "category": "slow"
+    },
+    {
+      "name": "polygon",
+      "chainId": 137,
+      "emoji": "🟣",
+      "envPrefix": "POLYGON",
+      "defaultBatchSize": 300,
+      "blockTime": "2s",
+      "category": "fast"
+    },
+    {
+      "name": "bsc",
+      "chainId": 56,
+      "emoji": "🟡",
+      "envPrefix": "BSC",
+      "defaultBatchSize": 200,
+      "blockTime": "3s",
+      "category": "medium"
+    },
+    {
+      "name": "arbitrum",
+      "chainId": 42161,
+      "emoji": "🔵",
+      "envPrefix": "ARBITRUM",
+      "defaultBatchSize": 200,
+      "blockTime": "0.25s",
+      "category": "medium"
+    },
+    {
+      "name": "avalanche",
+      "chainId": 43114,
+      "emoji": "🔴",
+      "envPrefix": "AVAX",
+      "defaultBatchSize": 300,
+      "blockTime": "2s",
+      "category": "fast"
+    },
+    {
+      "name": "base",
+      "chainId": 8453,
+      "emoji": "🔷",
+      "envPrefix": "BASE",
+      "defaultBatchSize": 200,
+      "blockTime": "2s",
+      "category": "medium"
+    },
+    {
+      "name": "berachain",
+      "chainId": 80094,
+      "emoji": "🐻",
+      "envPrefix": "BERA",
+      "defaultBatchSize": 200,
+      "blockTime": "5s",
+      "category": "medium"
+    },
+    {
+      "name": "mantle",
+      "chainId": 5000,
+      "emoji": "🟤",
+      "envPrefix": "MANTLE",
+      "defaultBatchSize": 200,
+      "blockTime": "2s",
+      "category": "medium"
+    },
+    {
+      "name": "optimism",
+      "chainId": 10,
+      "emoji": "🔸",
+      "envPrefix": "OPTIMISM",
+      "defaultBatchSize": 200,
+      "blockTime": "2s",
+      "category": "medium"
+    },
+    {
+      "name": "sonic",
+      "chainId": 146,
+      "emoji": "💫",
+      "envPrefix": "SONIC",
+      "defaultBatchSize": 300,
+      "blockTime": "1s",
+      "category": "fast"
+    },
+    {
+      "name": "unichain",
+      "chainId": 130,
+      "emoji": "🦄",
+      "envPrefix": "UNICHAIN",
+      "defaultBatchSize": 200,
+      "blockTime": "2s",
+      "category": "medium"
+    },
+    {
+      "name": "ronin",
+      "chainId": 2020,
+      "emoji": "⚔️",
+      "envPrefix": "RONIN",
+      "defaultBatchSize": 200,
+      "blockTime": "3s",
+      "category": "medium"
+    },
+    {
+      "name": "linea",
+      "chainId": 59144,
+      "emoji": "🌐",
+      "envPrefix": "LINEA",
+      "defaultBatchSize": 150,
+      "blockTime": "2s",
+      "category": "medium"
+    },
+    {
+      "name": "hyperevm",
+      "chainId": 999,
+      "emoji": "⚡",
+      "envPrefix": "HYPEREVM",
+      "defaultBatchSize": 75,
+      "blockTime": "variable",
+      "category": "slow"
+    }
+  ]
+} 
