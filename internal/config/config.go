@@ -19,14 +19,15 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Slack      SlackConfig                             `mapstructure:"slack"`
-	Tenderly   TenderlyConfig                          `mapstructure:"tenderly"`
-	Monitoring monitor.Config                          `mapstructure:"monitoring"`
-	KyberSwap  kyberswap.Config                        `mapstructure:"kyberswap"`
-	Chains     []monitor.ChainConfig                   `mapstructure:"chains"`
-	TestCases  []monitor.TestCase                      `mapstructure:"test_cases"`
-	Tokens     map[string]map[string]monitor.TokenInfo `mapstructure:"tokens"`            // chain name -> token address -> token info
-	Sources    map[string][]string                     `mapstructure:"liquidity_sources"` // chain name -> available sources
+	Slack             SlackConfig                             `mapstructure:"slack"`
+	Tenderly          TenderlyConfig                          `mapstructure:"tenderly"`
+	Monitoring        monitor.Config                          `mapstructure:"monitoring"`
+	KyberSwap         kyberswap.Config                        `mapstructure:"kyberswap"`
+	Chains            []monitor.ChainConfig                   `mapstructure:"chains"`
+	TestCases         []monitor.TestCase                      `mapstructure:"test_cases"`
+	Tokens            map[string]map[string]monitor.TokenInfo `mapstructure:"tokens"`            // chain name -> token address -> token info
+	Sources           map[string][]string                     `mapstructure:"liquidity_sources"` // chain name -> available sources
+	OnlyScaleDownDexs []string                                `mapstructure:"only_scale_down_dexs"`
 }
 
 // SlackConfig represents Slack configuration
@@ -111,6 +112,7 @@ func Load() (*Config, error) {
 	// KyberSwap config
 	config.KyberSwap.APIBaseURL = viper.GetString("kyberswap.api_base_url")
 	config.KyberSwap.ClientID = viper.GetString("kyberswap.client_id")
+	config.OnlyScaleDownDexs = viper.GetStringSlice("only_scale_down_dexs")
 
 	// Chains config - adding all supported chains from tokens.json
 	config.Chains = []monitor.ChainConfig{

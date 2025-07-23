@@ -64,6 +64,7 @@ func main() {
 		&cfg.Monitoring,
 		cfg.TestCases,
 		cfg.Tokens,
+		cfg.OnlyScaleDownDexs,
 		cfg.Sources,
 		cfg.Chains,
 		kyberClient,
